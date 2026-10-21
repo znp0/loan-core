@@ -1,0 +1,32 @@
+{
+  "name": "loan-application-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "pnpm run build && concurrently --kill-others --names compiler,server \"tsc --project tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/main.js\"",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/main.js",
+    "lint": "eslint src --max-warnings=0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.0.2",
+    "@nestjs/core": "12.0.2",
+    "@nestjs/platform-express": "12.0.2",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "12.0.1",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "22.15.3",
+    "eslint": "10.9.1",
+    "typescript": "7.0.2",
+    "concurrently": "9.2.1"
+  },
+  "files": [
+    "dist"
+  ]
+}

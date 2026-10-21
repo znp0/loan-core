@@ -1,0 +1,65 @@
+name: loan-core
+
+x-service-defaults: &service-defaults
+  init: true
+  environment:
+    NODE_ENV: production
+    HOST: 0.0.0.0
+    PORT: "3000"
+  stop_grace_period: 10s
+
+services:
+  api-gateway:
+    <<: *service-defaults
+    image: loan-core/api-gateway:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: api-gateway
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  identity-service:
+    <<: *service-defaults
+    image: loan-core/identity-service:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: identity-service
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  loan-product-service:
+    <<: *service-defaults
+    image: loan-core/loan-product-service:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: loan-product-service
+    ports:
+      - "127.0.0.1:3002:3000"
+
+  loan-application-service:
+    <<: *service-defaults
+    image: loan-core/loan-application-service:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: loan-application-service
+    ports:
+      - "127.0.0.1:3003:3000"
+
+  repayment-service:
+    <<: *service-defaults
+    image: loan-core/repayment-service:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        SERVICE: repayment-service
+    ports:
+      - "127.0.0.1:3007:3000"

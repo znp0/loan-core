@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+pnpm-lock.yaml
+notes/
+.agents/
+.codex/
+.aws/
+.husky/_/
+LICENSE

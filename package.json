@@ -1,0 +1,39 @@
+{
+  "name": "loan-core",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": "^24.15.0 || >=26.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "eslint . --max-warnings=0 && turbo run lint",
+    "check-types": "turbo run check-types",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm build && node scripts/smoke.mjs",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up --build --wait",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs --follow",
+    "prepare": "node .husky/install.mjs",
+    "lint:staged": "lint-staged",
+    "commitlint": "commitlint"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "eslint": "10.9.1",
+    "prettier": "3.9.6",
+    "turbo": "2.11.10",
+    "typescript": "7.0.2",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0"
+  },
+  "license": "MIT"
+}

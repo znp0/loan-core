@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+.agents/
+AGENTS.md
+.husky/_/
