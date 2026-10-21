@@ -21,7 +21,7 @@ Start one service with `pnpm --filter identity-service dev`.
 | Identity          | 3001 |
 | Loan products     | 3002 |
 | Loan applications | 3003 |
-| Repayment         | 3007 |
+| Repayment         | 3004 |
 
 Each app exposes `GET /api/v1/health`.
 

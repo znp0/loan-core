@@ -62,4 +62,4 @@ services:
       args:
         SERVICE: repayment-service
     ports:
-      - "127.0.0.1:3007:3000"
+      - "127.0.0.1:3004:3000"

@@ -13,7 +13,7 @@ async function bootstrap(): Promise<void> {
     loadEnvFile(".env");
   }
 
-  const portValue = process.env.PORT ?? "3007";
+  const portValue = process.env.PORT ?? "3004";
   const port = Number(portValue);
 
   if (!/^\d+$/.test(portValue) || !Number.isInteger(port) || port < 1 || port > 65535) {
