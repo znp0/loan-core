@@ -6,7 +6,10 @@ overrides:
   webpack: 5.111.0
 allowBuilds:
   "@nestjs/core": false
+  "@prisma/client": false
+  "@prisma/engines": true
   "@swc/core": true
+  prisma: true
 minimumReleaseAgeExclude:
   - "@turbo/darwin-64@2.11.10"
   - "@turbo/darwin-arm64@2.11.10"

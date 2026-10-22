@@ -10,6 +10,7 @@ export const baseConfig = [
       "**/dist/**",
       "**/.turbo/**",
       "**/coverage/**",
+      "**/src/generated/**",
       ".agents/**",
       ".codex/**",
       ".aws/**",

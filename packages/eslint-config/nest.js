@@ -10,7 +10,7 @@ const typescriptPresetPath = fileURLToPath(import.meta.resolve("@babel/preset-ty
 export const nestJsConfig = [
   ...baseConfig,
   {
-    files: ["src/**/*.ts"],
+    files: ["src/**/*.ts", "prisma.config.ts"],
     languageOptions: {
       parser: babelParser,
       parserOptions: {
@@ -22,8 +22,9 @@ export const nestJsConfig = [
       },
     },
     rules: {
-      // TypeScript checks names in both type and value positions.
+      // TypeScript checks names and usage in both type and value positions.
       "no-undef": "off",
+      "no-unused-vars": "off",
     },
   },
 ];

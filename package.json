@@ -21,7 +21,9 @@
     "docker:logs": "docker compose logs --follow",
     "prepare": "node .husky/install.mjs",
     "lint:staged": "lint-staged",
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "db:generate": "turbo run db:generate",
+    "db:validate": "turbo run db:validate"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
