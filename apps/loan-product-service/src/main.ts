@@ -6,7 +6,7 @@ import { loadEnvFile } from "node:process";
 import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 
-import { AppModule } from "./app.module.js";
+import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
   if (existsSync(".env")) {
