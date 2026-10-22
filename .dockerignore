@@ -21,3 +21,4 @@ docs
 **/*.pem
 **/*.key
 **/.husky/_
+**/src/generated

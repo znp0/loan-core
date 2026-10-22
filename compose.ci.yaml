@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test-only-password
+    volumes:
+      - ./scripts/ci-databases.sql:/docker-entrypoint-initdb.d/ci-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --host 127.0.0.1 --username postgres --dbname postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  identity-service:
+    environment:
+      DATABASE_URL: postgresql://identity_service:test-only-password@postgres:5432/identity
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  loan-product-service:
+    environment:
+      DATABASE_URL: postgresql://loan_product_service:test-only-password@postgres:5432/loan_products
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  loan-application-service:
+    environment:
+      DATABASE_URL: postgresql://loan_application_service:test-only-password@postgres:5432/loan_applications
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  repayment-service:
+    environment:
+      DATABASE_URL: postgresql://repayment_service:test-only-password@postgres:5432/repayment
+    depends_on:
+      postgres:
+        condition: service_healthy

@@ -1,0 +1,55 @@
+name: Smoke tests
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: "0"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username postgres --dbname postgres" --health-interval 2s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Configure isolated service databases
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec --interactive "$POSTGRES_CONTAINER" psql --username postgres --set ON_ERROR_STOP=1 < scripts/ci-databases.sql
+          node scripts/configure-ci-env.mjs
+      - run: pnpm test
+
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: docker compose --env-file /dev/null --file compose.yaml --file compose.ci.yaml config --quiet
+      - run: docker compose --env-file /dev/null --file compose.yaml --file compose.ci.yaml up --build --wait --wait-timeout 120
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --env-file /dev/null --file compose.yaml --file compose.ci.yaml logs --no-color
+      - name: Stop containers
+        if: always()
+        run: docker compose --env-file /dev/null --file compose.yaml --file compose.ci.yaml down --remove-orphans --volumes

@@ -2,7 +2,7 @@
   "name": "api-gateway",
   "version": "0.0.0",
   "private": true,
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "dev": "pnpm run build && concurrently --kill-others --names compiler,server \"tsc --project tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/main.js\"",
     "build": "tsc --project tsconfig.build.json",

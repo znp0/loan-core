@@ -8,6 +8,10 @@ FROM node:${NODE_VERSION}-bookworm-slim AS tooling
 ARG PNPM_VERSION=11.25.0
 ARG TURBO_VERSION=2.11.10
 
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN npm install --global pnpm@${PNPM_VERSION} turbo@${TURBO_VERSION}
 
 WORKDIR /workspace

@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "src/generated/prisma/**"]
     },
     "dev": {
       "cache": false,
@@ -19,10 +19,20 @@
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^check-types"],
+      "outputs": ["src/generated/prisma/**"]
+    },
+    "api-gateway#check-types": {
+      "outputs": []
+    },
+    "db:generate": {
+      "outputs": ["src/generated/prisma/**"]
+    },
+    "db:validate": {
+      "cache": false
     }
   },
-  "globalPassThroughEnv": ["HOST", "PORT", "NODE_ENV"],
+  "globalPassThroughEnv": ["HOST", "PORT", "NODE_ENV", "DATABASE_URL"],
   "globalDependencies": [
     ".env",
     "**/.env",

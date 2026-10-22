@@ -22,6 +22,9 @@ services:
 
   identity-service:
     <<: *service-defaults
+    env_file:
+      - path: ./apps/identity-service/.env
+        required: false
     image: loan-core/identity-service:local
     build:
       context: .
@@ -33,6 +36,9 @@ services:
 
   loan-product-service:
     <<: *service-defaults
+    env_file:
+      - path: ./apps/loan-product-service/.env
+        required: false
     image: loan-core/loan-product-service:local
     build:
       context: .
@@ -44,6 +50,9 @@ services:
 
   loan-application-service:
     <<: *service-defaults
+    env_file:
+      - path: ./apps/loan-application-service/.env
+        required: false
     image: loan-core/loan-application-service:local
     build:
       context: .
@@ -55,6 +64,9 @@ services:
 
   repayment-service:
     <<: *service-defaults
+    env_file:
+      - path: ./apps/repayment-service/.env
+        required: false
     image: loan-core/repayment-service:local
     build:
       context: .
