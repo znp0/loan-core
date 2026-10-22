@@ -23,7 +23,9 @@
     "lint:staged": "lint-staged",
     "commitlint": "commitlint",
     "db:generate": "turbo run db:generate",
-    "db:validate": "turbo run db:validate"
+    "db:validate": "turbo run db:validate",
+    "secrets:setup": "doppler setup --no-interactive",
+    "secrets:pull": "node scripts/pull-env.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

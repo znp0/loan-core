@@ -1,0 +1,13 @@
+setup:
+  - project: loan-core
+    config: dev_identity
+    path: apps/identity-service
+  - project: loan-core
+    config: dev_loan_product
+    path: apps/loan-product-service
+  - project: loan-core
+    config: dev_loan_application
+    path: apps/loan-application-service
+  - project: loan-core
+    config: dev_repayment
+    path: apps/repayment-service
