@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- Describe the problem and the resulting behavior. Mention affected services or shared packages, and link related issues when applicable. -->
+<!-- Describe briefly the problem and the resulting behavior. Mention affected services or shared packages, and link related issues when applicable. -->
 
 ## Checklist
 

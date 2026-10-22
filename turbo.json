@@ -32,7 +32,7 @@
       "cache": false
     }
   },
-  "globalPassThroughEnv": ["HOST", "PORT", "NODE_ENV", "DATABASE_URL"],
+  "globalPassThroughEnv": ["HOST", "PORT", "NODE_ENV", "DATABASE_URL", "DIRECT_URL"],
   "globalDependencies": [
     ".env",
     "**/.env",
