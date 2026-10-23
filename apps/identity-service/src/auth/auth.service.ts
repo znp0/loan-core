@@ -23,7 +23,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { phone, password, fullName } = registerDto;
+    const { phone, password, fullName, email } = registerDto;
     const normalizedPhone = phone.trim();
     const existingCustomer = await this.prisma.customer.findUnique({
       where: { phone: normalizedPhone },
@@ -36,7 +36,13 @@ export class AuthService {
     const passwordHash = await this.hashPassword(password);
 
     const customer = await this.prisma.customer.create({
-      data: { phone: normalizedPhone, passwordHash, fullName, role: "CUSTOMER" },
+      data: {
+        phone: normalizedPhone,
+        passwordHash,
+        fullName,
+        email: email.trim().toLowerCase(),
+        role: "CUSTOMER",
+      },
       select: { id: true, role: true },
     });
 
