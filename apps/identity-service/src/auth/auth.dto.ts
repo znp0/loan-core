@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from "class-validator";
 
 export class LoginDto {
   @Transform(({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value))
@@ -16,9 +16,9 @@ export class RegisterDto extends LoginDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim().toLowerCase() : value,
   )
-  @IsOptional()
+  @IsNotEmpty()
   @IsEmail()
-  email?: string;
+  email!: string;
 
   @MinLength(8)
   declare password: string;
