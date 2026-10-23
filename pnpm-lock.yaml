@@ -230,6 +230,12 @@ importers:
       '@prisma/client':
         specifier: 7.10.1
         version: 7.10.1(prisma@7.10.1(@types/node@22.15.3)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2))(typescript@7.0.2)
+      class-transformer:
+        specifier: 0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: 0.14.4
+        version: 0.14.4
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -4670,13 +4676,6 @@ snapshots:
       '@types/validator': 13.15.10
       libphonenumber-js: 1.12.41
       validator: 13.15.26
-
-  class-validator@0.15.1:
-    dependencies:
-      '@types/validator': 13.15.10
-      libphonenumber-js: 1.12.41
-      validator: 13.15.26
-    optional: true
 
   classnames@2.5.1: {}
 
