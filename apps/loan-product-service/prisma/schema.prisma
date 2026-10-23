@@ -7,3 +7,37 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum LoanProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LoanProductCurrency {
+  VND
+}
+
+enum LoanProductDocumentType {
+  ID_FRONT
+  ID_BACK
+}
+
+model LoanProduct {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  name                  String
+  description           String                    @default("")
+  status                LoanProductStatus
+  currency              LoanProductCurrency       @default(VND)
+  minAmount             BigInt                    @map("min_amount")
+  maxAmount             BigInt                    @map("max_amount")
+  allowedTerms          Int[]                     @map("allowed_terms")
+  annualInterestRate    Decimal                   @map("annual_interest_rate") @db.Decimal(10, 4)
+  minAge                Int                       @map("min_age")
+  maxAge                Int                       @map("max_age")
+  requiredDocumentTypes LoanProductDocumentType[] @map("required_document_types")
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("loan_products")
+}
