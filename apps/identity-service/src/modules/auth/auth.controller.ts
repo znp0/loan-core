@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, Post, Res, UsePipes } from "@nestjs/common";
 import type { Response } from "express";
 
-import { RequestValidationPipe } from "../common/pipes/request-validation.pipe";
+import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { LoginDto, RegisterDto } from "./auth.dto";
 import { AuthService } from "./auth.service";
 

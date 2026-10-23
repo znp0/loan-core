@@ -7,7 +7,7 @@ import { compare, hash } from "bcrypt";
 import {
   PhoneAlreadyExistsException,
   InvalidCredentialsException,
-} from "../common/exceptions/app.exceptions";
+} from "../../common/exceptions/app.exceptions";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, RegisterDto } from "./auth.dto";
 
