@@ -41,7 +41,12 @@ async function checkService(directory) {
 
   const child = spawn(process.execPath, ["dist/main.js"], {
     cwd,
-    env: { ...process.env, HOST: "127.0.0.1", PORT: String(port) },
+    env: {
+      ...process.env,
+      HOST: "127.0.0.1",
+      PORT: String(port),
+      JWT_SECRET: "smoke-test-secret-with-at-least-32-bytes",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -107,7 +112,10 @@ try {
 } finally {
   await Promise.all(
     children.map(async ({ child, exited }) => {
+      let stoppedByTest = false;
+
       if (child.exitCode === null && child.signalCode === null) {
+        stoppedByTest = true;
         child.kill("SIGTERM");
       }
 
@@ -118,7 +126,15 @@ try {
       try {
         const [code, signal] = await exited;
 
-        assert.ok(code === 0 || signal === "SIGTERM", "Service did not shut down cleanly");
+        // Windows implements child.kill using TerminateProcess, which exits with code 1.
+        const windowsTermination = process.platform === "win32" && stoppedByTest && code === 1;
+
+        if (stoppedByTest) {
+          assert.ok(
+            code === 0 || signal === "SIGTERM" || windowsTermination,
+            "Service did not shut down cleanly",
+          );
+        }
       } finally {
         globalThis.clearTimeout(forceStop);
       }
