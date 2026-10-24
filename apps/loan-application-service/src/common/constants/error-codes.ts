@@ -1,0 +1,9 @@
+export const ErrorCodes = {
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  APPLICATION_NOT_FOUND: "APPLICATION_NOT_FOUND",
+  APPLICATION_NOT_EDITABLE: "APPLICATION_NOT_EDITABLE",
+} as const;
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

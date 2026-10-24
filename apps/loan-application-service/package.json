@@ -12,28 +12,33 @@
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "test": "pnpm build && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.0.2",
     "@nestjs/core": "12.0.2",
+    "@nestjs/jwt": "12.0.3",
     "@nestjs/platform-express": "12.0.2",
-    "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2",
-    "@prisma/client": "7.10.1",
     "@prisma/adapter-pg": "7.10.1",
-    "pg": "8.23.1"
+    "@prisma/client": "7.10.1",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.14.4",
+    "pg": "8.23.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "12.0.1",
+    "@nestjs/testing": "12.0.2",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "22.15.3",
-    "eslint": "10.9.1",
-    "typescript": "7.0.2",
+    "@types/pg": "8.23.1",
     "concurrently": "9.2.1",
+    "eslint": "10.9.1",
     "prisma": "7.10.1",
-    "@types/pg": "8.23.1"
+    "typescript": "7.0.2"
   },
   "files": [
     "dist"
