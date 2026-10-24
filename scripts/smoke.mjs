@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { once } from "node:events";
 import { readdir, readFile } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -45,7 +46,7 @@ async function checkService(directory) {
       ...process.env,
       HOST: "127.0.0.1",
       PORT: String(port),
-      JWT_SECRET: "smoke-test-secret-with-at-least-32-bytes",
+      JWT_SECRET: randomBytes(32).toString("hex"),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
