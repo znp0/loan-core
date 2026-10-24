@@ -5,6 +5,10 @@ export class LoginDto {
   @Transform(({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
+  @Matches(/^0[35789]\d{8}$/, {
+    message:
+      "phone must be a 10-digit Vietnamese mobile number starting with 03, 05, 07, 08, or 09",
+  })
   phone!: string;
 
   @IsString()
