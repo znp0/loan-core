@@ -8,11 +8,11 @@ import { LoanProductsService } from "./loan-products.service";
 @Controller("loan-products")
 @UsePipes(new RequestValidationPipe())
 export class LoanProductsController {
-  constructor(private readonly loanProducts: LoanProductsService) {}
+  constructor(private readonly loanProductsService: LoanProductsService) {}
 
   @Get()
   list(@Query() query: ListLoanProductsQuery) {
-    return this.loanProducts.list(query);
+    return this.loanProductsService.list(query);
   }
 
   @Get(":productId")
@@ -26,6 +26,6 @@ export class LoanProductsController {
     )
     productId: string,
   ) {
-    return this.loanProducts.get(productId);
+    return this.loanProductsService.get(productId);
   }
 }

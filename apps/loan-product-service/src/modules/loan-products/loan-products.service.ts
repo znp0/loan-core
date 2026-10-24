@@ -1,22 +1,9 @@
 import { Injectable } from "@nestjs/common";
 
 import { type LoanProduct, LoanProductStatus } from "../../generated/prisma/client";
-import {
-  ProductNotFoundException,
-  ValidationException,
-} from "../../common/exceptions/app.exceptions";
+import { ProductNotFoundException } from "../../common/exceptions/app.exceptions";
 import { PrismaService } from "../prisma/prisma.service";
 import { ListLoanProductsQuery } from "./loan-products.dto";
-
-function safeAmount(value: bigint): number {
-  const amount = Number(value);
-
-  if (!Number.isSafeInteger(amount)) {
-    throw new Error("Loan product amount exceeds the JSON safe integer range");
-  }
-
-  return amount;
-}
 
 function productResponse(product: LoanProduct) {
   return {
@@ -25,8 +12,8 @@ function productResponse(product: LoanProduct) {
     description: product.description,
     status: product.status,
     currency: product.currency,
-    minAmount: safeAmount(product.minAmount),
-    maxAmount: safeAmount(product.maxAmount),
+    minAmount: Number(product.minAmount),
+    maxAmount: Number(product.maxAmount),
     allowedTerms: product.allowedTerms,
     annualInterestRate: product.annualInterestRate.toNumber(),
     minAge: product.minAge,
@@ -43,12 +30,6 @@ export class LoanProductsService {
 
   async list(query: ListLoanProductsQuery) {
     const offset = query.page * query.size;
-
-    if (!Number.isSafeInteger(offset)) {
-      throw new ValidationException([
-        { field: "page", message: "Page must be a non-negative integer." },
-      ]);
-    }
 
     const where = { status: LoanProductStatus.ACTIVE };
     const [products, totalElements] = await Promise.all([
