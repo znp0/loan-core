@@ -63,3 +63,23 @@ export class ApplicationNotEditableException extends AppException {
     );
   }
 }
+
+export class AccountVerificationNotEditableException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.CONFLICT,
+      ErrorCodes.APPLICATION_NOT_EDITABLE,
+      "Disbursement account verification is only allowed while the application is in DRAFT status.",
+    );
+  }
+}
+
+export class AccountInformationIncompleteException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      ErrorCodes.ACCOUNT_INFORMATION_INCOMPLETE,
+      "Complete the disbursement account information before verification.",
+    );
+  }
+}
