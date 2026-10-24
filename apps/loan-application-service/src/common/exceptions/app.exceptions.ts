@@ -1,25 +1,81 @@
-import { HttpException } from "@nestjs/common";
+import { HttpException, HttpStatus } from "@nestjs/common";
+
+import { ErrorCodes } from "../constants/error-codes";
+
+export interface ErrorDetail {
+  field: string;
+  message: string;
+}
 
 export class AppException extends HttpException {
-  constructor(status: number, code: string, message: string, details: unknown[] = []) {
+  constructor(status: number, code: string, message: string, details: ErrorDetail[] = []) {
     super({ code, message, details }, status);
   }
 }
 
 export class ValidationException extends AppException {
-  constructor(details: unknown[] = []) {
-    super(400, "VALIDATION_ERROR", "The request contains invalid fields.", details);
+  constructor(details: ErrorDetail[] = []) {
+    super(
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+      "The request contains invalid fields.",
+      details,
+    );
   }
 }
 
 export function applicationNotEditableException(): AppException {
   return new AppException(
     409,
-    "APPLICATION_NOT_EDITABLE",
+    ErrorCodes.APPLICATION_NOT_EDITABLE,
     "The loan application can only be edited while it is in DRAFT status.",
   );
 }
 
 export function forbiddenException(): AppException {
-  return new AppException(403, "FORBIDDEN", "You do not have permission to perform this action.");
+  return new AppException(
+    403,
+    ErrorCodes.FORBIDDEN,
+    "You do not have permission to perform this action.",
+  );
+}
+
+export class UnauthorizedException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+      "Authentication is required to access this resource.",
+    );
+  }
+}
+
+export class ForbiddenException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.FORBIDDEN,
+      ErrorCodes.FORBIDDEN,
+      "You do not have permission to perform this action.",
+    );
+  }
+}
+
+export class ApplicationNotFoundException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.NOT_FOUND,
+      ErrorCodes.APPLICATION_NOT_FOUND,
+      "The requested loan application was not found.",
+    );
+  }
+}
+
+export class ApplicationNotEditableException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.CONFLICT,
+      ErrorCodes.APPLICATION_NOT_EDITABLE,
+      "Identity verification is only allowed while the application is in DRAFT status.",
+    );
+  }
 }
