@@ -24,9 +24,9 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const { phone, password, fullName, email } = registerDto;
-    const normalizedPhone = phone.trim();
+
     const existingCustomer = await this.prisma.customer.findUnique({
-      where: { phone: normalizedPhone },
+      where: { phone },
     });
 
     if (existingCustomer) {
@@ -37,10 +37,10 @@ export class AuthService {
 
     const customer = await this.prisma.customer.create({
       data: {
-        phone: normalizedPhone,
+        phone,
         passwordHash,
         fullName,
-        email: email.trim().toLowerCase(),
+        email,
         role: "CUSTOMER",
       },
       select: { id: true, role: true },
@@ -51,8 +51,9 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const { phone, password } = loginDto;
+
     const customer = await this.prisma.customer.findUnique({
-      where: { phone: phone.trim() },
+      where: { phone },
     });
 
     if (!customer || !customer.passwordHash) {
