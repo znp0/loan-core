@@ -8,6 +8,7 @@ export const ErrorCodes = {
   NOT_FOUND: "NOT_FOUND",
   DATABASE_ERROR: "DATABASE_ERROR",
   INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
+  ACCOUNT_INFORMATION_INCOMPLETE: "ACCOUNT_INFORMATION_INCOMPLETE",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
