@@ -23,6 +23,14 @@ const repository = {
     async findUnique({ where }) {
       return applications.get(where.id) ?? null;
     },
+    async update({ where, data }) {
+      const record = applications.get(where.id);
+      if (!record) {
+        throw new Error("Application not found");
+      }
+      Object.assign(record, data);
+      return record;
+    },
   },
   identity_verifications: {
     async create({ data }) {
@@ -58,6 +66,11 @@ function application(overrides = {}) {
     full_name: "Nguyễn Văn A",
     date_of_birth: new Date("1990-01-31T00:00:00.000Z"),
     identity_expiry_date: new Date("2030-12-31T00:00:00.000Z"),
+    bank_code: "VCB",
+    account_number: "0123456789",
+    account_holder_name: "NGUYEN VAN A",
+    verification_status: "UNVERIFIED",
+    updated_at: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
   };
   applications.set(record.id, record);
@@ -83,6 +96,22 @@ async function post(applicationId, input = body(), cookie = token()) {
     method: "POST",
     headers,
     body: JSON.stringify(input),
+    signal: AbortSignal.timeout(10000),
+  });
+}
+
+async function verifyAccount(applicationId, { cookie = token(), query = "", body } = {}) {
+  const headers = {};
+  if (cookie) {
+    headers.Cookie = `access_token=${cookie}`;
+  }
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  return fetch(`${url}/loan-applications/${applicationId}/disbursement-account/verify${query}`, {
+    method: "POST",
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(10000),
   });
 }
@@ -218,4 +247,115 @@ test("owner, existence and DRAFT status are enforced", async () => {
   record.status = "SUBMITTED";
   await assertError(await post(record.id), 409, "APPLICATION_NOT_EDITABLE");
   assert.equal(verifications.length, 0);
+});
+
+test("account verification accepts a normalized holder name and masks the number", async () => {
+  const record = application({
+    bank_code: " vcb ",
+    account_number: " 0123456789 ",
+    account_holder_name: " NGUYEN VAN A ",
+  });
+  const response = await verifyAccount(record.id);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.deepEqual(Object.keys(result).sort(), [
+    "accountHolderName",
+    "bankCode",
+    "maskedAccountNumber",
+    "mismatchedFields",
+    "status",
+    "verifiedAt",
+  ]);
+  assert.equal(result.status, "VERIFIED");
+  assert.equal(result.bankCode, "vcb");
+  assert.equal(result.accountHolderName, "NGUYEN VAN A");
+  assert.equal(result.maskedAccountNumber, "******6789");
+  assert.deepEqual(result.mismatchedFields, []);
+  assert.ok(!Number.isNaN(Date.parse(result.verifiedAt)));
+  assert.equal(record.verification_status, "VERIFIED");
+  assert.ok(record.updated_at > new Date("2026-01-01T00:00:00.000Z"));
+  assert.ok(!JSON.stringify(result).includes("0123456789"));
+});
+
+test("invalid bank, number and name return FAILED in field order", async () => {
+  const record = application({
+    bank_code: "V*",
+    account_number: "1234",
+    account_holder_name: "OTHER PERSON",
+  });
+  const response = await verifyAccount(record.id);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.status, "FAILED");
+  assert.deepEqual(result.mismatchedFields, ["bankCode", "accountNumber", "accountHolderName"]);
+  assert.equal(result.maskedAccountNumber, "******");
+  assert.equal(record.verification_status, "FAILED");
+  assert.ok(!JSON.stringify(result).includes('"1234"'));
+});
+
+test("missing borrower name is a failed name match, not an incomplete account", async () => {
+  const record = application({ full_name: null });
+  const response = await verifyAccount(record.id);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.status, "FAILED");
+  assert.deepEqual(result.mismatchedFields, ["accountHolderName"]);
+});
+
+test("a later failed check replaces an earlier VERIFIED status", async () => {
+  const record = application();
+  assert.equal((await verifyAccount(record.id)).status, 200);
+  assert.equal(record.verification_status, "VERIFIED");
+  record.account_holder_name = "OTHER PERSON";
+  const response = await verifyAccount(record.id);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).status, "FAILED");
+  assert.equal(record.verification_status, "FAILED");
+});
+
+test("missing account fields return 422 without changing prior status", async () => {
+  for (const field of ["bank_code", "account_number", "account_holder_name"]) {
+    for (const value of [null, "   "]) {
+      const record = application({ [field]: value, verification_status: "VERIFIED" });
+      await assertError(await verifyAccount(record.id), 422, "ACCOUNT_INFORMATION_INCOMPLETE");
+      assert.equal(record.verification_status, "VERIFIED");
+    }
+  }
+});
+
+test("account verification rejects unexpected input before updating status", async () => {
+  const record = application();
+  for (const options of [{ query: "?status=VERIFIED" }, { body: { status: "VERIFIED" } }]) {
+    await assertError(await verifyAccount(record.id, options), 400, "VALIDATION_ERROR");
+  }
+  const textResponse = await fetch(
+    `${url}/loan-applications/${record.id}/disbursement-account/verify`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "text/plain", Cookie: `access_token=${token()}` },
+      body: "unexpected request body",
+    },
+  );
+  await assertError(textResponse, 400, "VALIDATION_ERROR");
+  await assertError(await verifyAccount("not-a-uuid"), 400, "VALIDATION_ERROR");
+  assert.equal(record.verification_status, "UNVERIFIED");
+});
+
+test("account verification requires a CUSTOMER owner and DRAFT application", async () => {
+  const record = application();
+  await assertError(await verifyAccount(record.id, { cookie: null }), 401, "UNAUTHORIZED");
+  await assertError(
+    await verifyAccount(record.id, { cookie: token({ role: "STAFF" }) }),
+    403,
+    "FORBIDDEN",
+  );
+  await assertError(
+    await verifyAccount(record.id, { cookie: token({ sub: randomUUID() }) }),
+    403,
+    "FORBIDDEN",
+  );
+  await assertError(await verifyAccount(randomUUID()), 404, "APPLICATION_NOT_FOUND");
+  record.status = "SUBMITTED";
+  await assertError(await verifyAccount(record.id), 409, "APPLICATION_NOT_EDITABLE");
+  assert.equal(record.verification_status, "UNVERIFIED");
 });
