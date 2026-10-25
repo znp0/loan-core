@@ -72,4 +72,22 @@ export class LoanProductsService {
 
     return productResponse(product);
   }
+
+  async getValidationTerms(productId: string) {
+    const product = await this.prisma.loanProduct.findUnique({ where: { id: productId } });
+
+    if (!product) {
+      throw new ProductNotFoundException();
+    }
+
+    return {
+      id: product.id,
+      minAmount: Number(product.minAmount),
+      maxAmount: Number(product.maxAmount),
+      allowedTerms: product.allowedTerms,
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requiredDocumentTypes: product.requiredDocumentTypes,
+    };
+  }
 }

@@ -24,6 +24,16 @@ export class ValidationException extends AppException {
   }
 }
 
+export class UnauthorizedException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+      "Authentication is required to access this resource.",
+    );
+  }
+}
+
 export class ProductNotFoundException extends AppException {
   constructor() {
     super(
