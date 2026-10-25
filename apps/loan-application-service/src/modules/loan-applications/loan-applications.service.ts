@@ -92,7 +92,7 @@ export class LoanApplicationsService {
           Object.entries(dto.disbursementAccount).some(
             ([key, value]) =>
               value !== undefined &&
-              application[key as "bankCode" | "accountNumber" | "accountHolderName"] !== value,
+              application[key as "accountNumber" | "accountHolderName"] !== value,
           )
         ) {
           data.verificationStatus = "UNVERIFIED";
@@ -232,12 +232,7 @@ export class LoanApplicationsService {
       const value = financialInfo?.[field];
       if (value !== undefined) data[field] = value === null ? null : BigInt(value);
     }
-    for (const field of [
-      "dateOfBirth",
-      "identityIssuedDate",
-      "identityExpiryDate",
-      "employmentStartDate",
-    ] as const) {
+    for (const field of ["dateOfBirth", "identityIssuedDate", "employmentStartDate"] as const) {
       const value =
         field === "employmentStartDate" ? employmentInfo?.[field] : applicantInfo?.[field];
       if (value !== undefined)

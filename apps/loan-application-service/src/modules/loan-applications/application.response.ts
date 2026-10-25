@@ -37,7 +37,6 @@ export function applicationResponse(application: ApplicationRecord) {
       dateOfBirth: date(application.dateOfBirth),
       identityNumber: application.identityNumber,
       identityIssuedDate: date(application.identityIssuedDate),
-      identityExpiryDate: date(application.identityExpiryDate),
       email: application.email,
       phone: application.phone,
     },
@@ -63,7 +62,6 @@ export function applicationResponse(application: ApplicationRecord) {
       phone,
     })),
     disbursementAccount: {
-      bankCode: application.bankCode,
       accountNumber: application.accountNumber,
       accountHolderName: application.accountHolderName,
       verificationStatus: application.verificationStatus,
