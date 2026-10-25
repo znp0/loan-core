@@ -2,17 +2,17 @@ import { Controller, Get, Param, ParseUUIDPipe, Query, UsePipes } from "@nestjs/
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
-import { ListLoanProductsQuery } from "./loan-products.dto";
-import { LoanProductsService } from "./loan-products.service";
+import { ListLoanProductQuery } from "./loan-product.dto";
+import { LoanProductService } from "./loan-product.service";
 
 @Controller("loan-products")
 @UsePipes(new RequestValidationPipe())
-export class LoanProductsController {
-  constructor(private readonly loanProductsService: LoanProductsService) {}
+export class LoanProductController {
+  constructor(private readonly loanProductService: LoanProductService) {}
 
   @Get()
-  list(@Query() query: ListLoanProductsQuery) {
-    return this.loanProductsService.listActive(query);
+  list(@Query() query: ListLoanProductQuery) {
+    return this.loanProductService.list(query);
   }
 
   @Get(":productId")
@@ -26,6 +26,6 @@ export class LoanProductsController {
     )
     productId: string,
   ) {
-    return this.loanProductsService.getActiveById(productId);
+    return this.loanProductService.get(productId);
   }
 }

@@ -12,11 +12,11 @@ import {
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { ProductInternalTokenGuard } from "../../common/guards/product-internal-token.guard";
-import { LoanProductsService } from "./loan-products.service";
+import { LoanProductService } from "./loan-product.service";
 
 @Controller("internal/loan-products")
-export class InternalLoanProductsController {
-  constructor(private readonly loanProductsService: LoanProductsService) {}
+export class InternalLoanProductController {
+  constructor(private readonly loanProductService: LoanProductService) {}
 
   @Get(":productId")
   get(
@@ -37,7 +37,7 @@ export class InternalLoanProductsController {
       );
     }
 
-    return this.loanProductsService.getById(id);
+    return this.loanProductService.getById(id);
   }
 
   @Get(":productId/validation-terms")
@@ -52,6 +52,6 @@ export class InternalLoanProductsController {
     )
     productId: string,
   ) {
-    return this.loanProductsService.getValidationTerms(productId);
+    return this.loanProductService.getValidationTerms(productId);
   }
 }

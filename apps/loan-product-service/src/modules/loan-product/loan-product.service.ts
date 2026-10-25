@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { ProductNotFoundException } from "../../common/exceptions/app.exceptions";
 import { type LoanProduct, LoanProductStatus } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { ListLoanProductsQuery } from "./loan-products.dto";
+import { ListLoanProductQuery } from "./loan-product.dto";
 
 function productResponse(product: LoanProduct) {
   return {
@@ -25,7 +25,7 @@ function productResponse(product: LoanProduct) {
 }
 
 @Injectable()
-export class LoanProductsService {
+export class LoanProductService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getById(productId: string) {
@@ -38,7 +38,7 @@ export class LoanProductsService {
     return productResponse(product);
   }
 
-  async listActive(query: ListLoanProductsQuery) {
+  async list(query: ListLoanProductQuery) {
     const offset = query.page * query.size;
 
     const where = { status: LoanProductStatus.ACTIVE };
@@ -61,7 +61,7 @@ export class LoanProductsService {
     };
   }
 
-  async getActiveById(productId: string) {
+  async get(productId: string) {
     const product = await this.prisma.loanProduct.findFirst({
       where: { id: productId, status: LoanProductStatus.ACTIVE },
     });
