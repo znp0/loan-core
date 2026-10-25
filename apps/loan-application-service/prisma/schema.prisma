@@ -7,3 +7,175 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum EmploymentType {
+  SALARIED
+  SELF_EMPLOYED
+  OTHER
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  FAILED
+}
+
+enum ApplicationDocumentType {
+  ID_FRONT
+  ID_BACK
+}
+
+// Identity checks use the specification's result states, not bank verification states.
+enum IdentityVerificationStatus {
+  PASSED
+  FAILED
+}
+
+enum LoanContractStatus {
+  DRAFT
+  CUSTOMER_SIGNED
+  EFFECTIVE
+  VOIDED
+}
+
+enum LoanContractCurrency {
+  VND
+}
+
+enum LoanContractInterestCalculationMethod {
+  DECLINING_BALANCE_EQUAL_PRINCIPAL
+}
+
+model LoanApplication {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  applicationNumber     String                 @unique @map("application_number")
+  // External IDs: identity and product services own separate databases.
+  customerId            String                 @map("customer_id") @db.Uuid
+  productId             String                 @map("product_id") @db.Uuid
+  status                ApplicationStatus      @default(DRAFT)
+  requestedAmount       BigInt                 @map("requested_amount")
+  termMonths            Int                    @map("term_months")
+  purpose               String
+  fullName              String?                @map("full_name")
+  dateOfBirth           DateTime?              @map("date_of_birth") @db.Date
+  identityNumber        String?                @map("identity_number")
+  identityIssuedDate    DateTime?              @map("identity_issued_date") @db.Date
+  identityExpiryDate    DateTime?              @map("identity_expiry_date") @db.Date
+  email                 String?
+  phone                 String?
+  addressLine           String?                @map("address_line")
+  ward                  String?
+  district              String?
+  province              String?
+  employmentType        EmploymentType?        @map("employment_type")
+  employerName          String?                @map("employer_name")
+  jobTitle              String?                @map("job_title")
+  employmentStartDate   DateTime?              @map("employment_start_date") @db.Date
+  monthlyIncome         BigInt?                @map("monthly_income")
+  otherMonthlyIncome    BigInt?                @map("other_monthly_income")
+  bankCode              String?                @map("bank_code")
+  accountNumber         String?                @map("account_number")
+  accountHolderName     String?                @map("account_holder_name")
+  verificationStatus    VerificationStatus     @default(UNVERIFIED) @map("verification_status")
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  contacts              ApplicationContact[]
+  documents             ApplicationDocument[]
+  identityVerifications IdentityVerification[]
+  contracts             LoanContract[]
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([productId])
+  @@map("loan_applications")
+}
+
+model ApplicationContact {
+  id            String          @id @default(uuid()) @db.Uuid
+  applicationId String          @map("application_id") @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  position      Int
+  fullName      String          @map("full_name")
+  relationship  String
+  phone         String
+
+  @@unique([applicationId, phone])
+  @@unique([applicationId, position])
+  @@map("application_contacts")
+}
+
+model ApplicationDocument {
+  id            String                  @id @default(uuid()) @db.Uuid
+  applicationId String                  @map("application_id") @db.Uuid
+  application   LoanApplication         @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  type          ApplicationDocumentType
+  fileName      String                  @map("file_name")
+  contentType   String                  @map("content_type")
+  size          Int
+  storageKey    String                  @unique @map("storage_key")
+  isCurrent     Boolean                 @default(true) @map("is_current")
+  uploadedAt    DateTime                @default(now()) @map("uploaded_at") @db.Timestamptz(3)
+
+  // Partial current-version uniqueness is enforced by the SQL migration.
+  @@index([applicationId, type, uploadedAt(sort: Desc)])
+  @@map("application_documents")
+}
+
+// Completed attempts only: the Phase 1 verification API is synchronous.
+// Store field names and outcomes, never NFC payloads or copies of identity data.
+model IdentityVerification {
+  id               String                     @id @default(uuid()) @db.Uuid
+  applicationId    String                     @map("application_id") @db.Uuid
+  application      LoanApplication            @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  status           IdentityVerificationStatus
+  mismatchedFields String[]                   @default([]) @map("mismatched_fields")
+  verifiedAt       DateTime                   @map("verified_at") @db.Timestamptz(3)
+  // Invalidate without overwriting the original result or deleting history.
+  // Eligibility must inspect the latest attempt, never fall back to an older PASSED result.
+  invalidatedAt    DateTime?                  @map("invalidated_at") @db.Timestamptz(3)
+  createdAt        DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([applicationId, verifiedAt(sort: Desc), id(sort: Desc)])
+  @@map("identity_verifications")
+}
+
+model LoanContract {
+  id                        String                                @id @default(uuid()) @db.Uuid
+  applicationId             String                                @map("application_id") @db.Uuid
+  application               LoanApplication                       @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  // The specification does not require a new contractNumber for every version.
+  contractNumber            String                                @map("contract_number")
+  version                   Int
+  status                    LoanContractStatus                    @default(DRAFT)
+  principalAmount           BigInt                                @map("principal_amount")
+  currency                  LoanContractCurrency                  @default(VND)
+  termMonths                Int                                   @map("term_months")
+  annualInterestRate        Decimal                               @map("annual_interest_rate") @db.Decimal(10, 4)
+  interestCalculationMethod LoanContractInterestCalculationMethod @default(DECLINING_BALANCE_EQUAL_PRINCIPAL) @map("interest_calculation_method")
+  // totalPrincipal in the API is principalAmount; avoid duplicate storage.
+  totalInterest             BigInt                                @map("total_interest")
+  totalPayable              BigInt                                @map("total_payable")
+  // Required version-local snapshots. Future writers must preserve them and
+  // financial terms; regeneration creates a new version, never edits old content.
+  applicationSnapshot       Json                                  @map("application_snapshot") @db.JsonB
+  productSnapshot           Json                                  @map("product_snapshot") @db.JsonB
+  // Array of installmentNumber/principalAmount/interestAmount/totalAmount.
+  // Preview has no final due dates; VND entries are integer JSON numbers.
+  schedulePreview           Json                                  @map("schedule_preview") @db.JsonB
+  signedAt                  DateTime?                             @map("signed_at") @db.Timestamptz(3)
+  contentHash               String?                               @map("content_hash")
+  createdAt                 DateTime                              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // The unique B-tree also supports application-scoped latest-version reads
+  // by scanning version in descending order; no redundant latest-version index.
+  @@unique([applicationId, version])
+  @@map("loan_contracts")
+}
