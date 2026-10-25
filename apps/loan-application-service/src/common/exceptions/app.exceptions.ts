@@ -70,6 +70,12 @@ export class ApplicationNotFoundException extends AppException {
   }
 }
 
+export class ContractNotFoundException extends AppException {
+  constructor() {
+    super(HttpStatus.NOT_FOUND, ErrorCodes.CONTRACT_NOT_FOUND, "The contract was not found.");
+  }
+}
+
 export class ApplicationNotEditableException extends AppException {
   constructor() {
     super(
