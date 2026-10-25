@@ -1,17 +1,28 @@
-import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, SetMetadata } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { isUUID } from "class-validator";
+import { Reflector } from "@nestjs/core";
 
 import { ForbiddenException, UnauthorizedException } from "../exceptions/app.exceptions";
 
 export type CustomerRequest = {
   headers: { cookie?: string };
   customerId?: string;
+  role?: AccessRole;
 };
+
+export type AccessRole = "CUSTOMER" | "STAFF";
+
+const ACCESS_ROLES = "access-roles";
+
+export const RequireRoles = (...roles: AccessRole[]) => SetMetadata(ACCESS_ROLES, roles);
 
 @Injectable()
 export class CustomerAccessGuard implements CanActivate {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<CustomerRequest>();
@@ -50,11 +61,17 @@ export class CustomerAccessGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    if (claims.role !== "CUSTOMER") {
+    const allowedRoles = this.reflector.getAllAndOverride<AccessRole[]>(ACCESS_ROLES, [
+      context.getHandler(),
+      context.getClass(),
+    ]) ?? ["CUSTOMER"];
+
+    if (typeof claims.role !== "string" || !allowedRoles.includes(claims.role as AccessRole)) {
       throw new ForbiddenException();
     }
 
     request.customerId = claims.sub;
+    request.role = claims.role as AccessRole;
     return true;
   }
 }

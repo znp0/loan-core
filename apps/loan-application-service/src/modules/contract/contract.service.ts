@@ -4,9 +4,12 @@ import {
   ApplicationNotFoundException,
   ApplicationNotReadyException,
   ContractApplicationNotEditableException,
+  ContractNotFoundException,
   DependencyUnavailableException,
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
+import { type LoanContract } from "../../generated/prisma/client";
+import type { AccessRole } from "../../common/guards/customer-access.guard";
 import { PrismaService } from "../prisma/prisma.service";
 import { ValidationService } from "../validation/validation.service";
 import { buildContractSchedule } from "./contract-schedule";
@@ -33,12 +36,72 @@ function decimalNumber(value: unknown): number {
   throw new TypeError("Unexpected decimal value.");
 }
 
+function amountNumber(value: bigint): number {
+  const result = Number(value);
+
+  if (!Number.isSafeInteger(result)) {
+    throw new RangeError("Contract amount exceeds the JSON safe integer range.");
+  }
+
+  return result;
+}
+
+function contractResponse(contract: LoanContract, schedulePreview = contract.schedulePreview) {
+  return {
+    id: contract.id,
+    applicationId: contract.applicationId,
+    contractNumber: contract.contractNumber,
+    version: contract.version,
+    status: contract.status,
+    terms: {
+      principalAmount: amountNumber(contract.principalAmount),
+      currency: contract.currency,
+      termMonths: contract.termMonths,
+      annualInterestRate: decimalNumber(contract.annualInterestRate),
+      interestCalculationMethod: contract.interestCalculationMethod,
+    },
+    schedulePreview,
+    totalPrincipal: amountNumber(contract.principalAmount),
+    totalInterest: amountNumber(contract.totalInterest),
+    totalPayable: amountNumber(contract.totalPayable),
+    signedAt: contract.signedAt?.toISOString() ?? null,
+    contentHash: contract.contentHash,
+    createdAt: contract.createdAt.toISOString(),
+    updatedAt: contract.updatedAt.toISOString(),
+  };
+}
+
 @Injectable()
 export class ContractService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly validationService: ValidationService,
   ) {}
+
+  async get(applicationId: string, customerId: string, role: AccessRole) {
+    const application = await this.prisma.loanApplication.findUnique({
+      where: { id: applicationId },
+      select: { customerId: true },
+    });
+
+    if (!application) {
+      throw new ApplicationNotFoundException();
+    }
+    if (role === "CUSTOMER" && application.customerId !== customerId) {
+      throw new ForbiddenException();
+    }
+
+    const contract = await this.prisma.loanContract.findFirst({
+      where: { applicationId },
+      orderBy: { version: "desc" },
+    });
+
+    if (!contract) {
+      throw new ContractNotFoundException();
+    }
+
+    return contractResponse(contract);
+  }
 
   async create(applicationId: string, customerId: string) {
     return this.prisma.$transaction(
@@ -176,28 +239,7 @@ export class ContractService {
 
         return {
           created: version === 1,
-          contract: {
-            id: contract.id,
-            applicationId: contract.applicationId,
-            contractNumber: contract.contractNumber,
-            version: contract.version,
-            status: contract.status,
-            terms: {
-              principalAmount: schedule.totalPrincipal,
-              currency: contract.currency,
-              termMonths: contract.termMonths,
-              annualInterestRate: decimalNumber(contract.annualInterestRate),
-              interestCalculationMethod: contract.interestCalculationMethod,
-            },
-            schedulePreview: schedule.items,
-            totalPrincipal: schedule.totalPrincipal,
-            totalInterest: schedule.totalInterest,
-            totalPayable: schedule.totalPayable,
-            signedAt: contract.signedAt?.toISOString() ?? null,
-            contentHash: contract.contentHash,
-            createdAt: contract.createdAt.toISOString(),
-            updatedAt: contract.updatedAt.toISOString(),
-          },
+          contract: contractResponse(contract, schedule.items),
         };
       },
       { timeout: 10_000 },
