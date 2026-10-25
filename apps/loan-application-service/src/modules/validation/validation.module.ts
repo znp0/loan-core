@@ -8,5 +8,6 @@ import { ValidationService } from "./validation.service";
   imports: [CustomerAccessModule],
   controllers: [ValidationController],
   providers: [ValidationService],
+  exports: [ValidationService],
 })
 export class ValidationModule {}

@@ -80,6 +80,26 @@ export class ApplicationNotEditableException extends AppException {
   }
 }
 
+export class ContractApplicationNotEditableException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.CONFLICT,
+      ErrorCodes.APPLICATION_NOT_EDITABLE,
+      "The loan application cannot have a contract created in its current status.",
+    );
+  }
+}
+
+export class ApplicationNotReadyException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      ErrorCodes.APPLICATION_NOT_READY,
+      "The loan application does not meet the requirements for contract creation.",
+    );
+  }
+}
+
 export class AccountVerificationNotEditableException extends AppException {
   constructor() {
     super(

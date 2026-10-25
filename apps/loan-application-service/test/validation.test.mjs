@@ -10,6 +10,7 @@ import { Test } from "@nestjs/testing";
 const require = createRequire(import.meta.url);
 const { AppModule } = require("../dist/app.module.js");
 const { PrismaService } = require("../dist/modules/prisma/prisma.service.js");
+const { ValidationService } = require("../dist/modules/validation/validation.service.js");
 const originalFetch = globalThis.fetch;
 const originalEnvironment = Object.fromEntries(
   [
@@ -29,12 +30,14 @@ const productTerms = {
   minAmount: 10000000,
   maxAmount: 50000000,
   allowedTerms: [6, 12],
+  annualInterestRate: "12.5000",
   minAge: 18,
   maxAge: 65,
   requiredDocumentTypes: ["ID_FRONT", "ID_BACK"],
 };
 let app;
 let url;
+let validationService;
 let productStatus;
 let productErrorCode;
 let productMalformed404;
@@ -178,6 +181,7 @@ before(async () => {
   app.setGlobalPrefix("api/v1");
   await app.listen(0, "127.0.0.1");
   url = `${await app.getUrl()}/api/v1`;
+  validationService = app.get(ValidationService);
 });
 
 beforeEach(() => {
@@ -211,6 +215,15 @@ test("complete application passes every check using inactive product terms", asy
   assert.equal(result.checks.length, 13);
   assert.ok(result.checks.every((item) => item.status === "PASSED"));
   assert.ok(!Number.isNaN(Date.parse(result.checkedAt)));
+});
+
+test("evaluation exposes the validated application and exact product terms for contract creation", async () => {
+  const record = application();
+  const evaluation = await validationService.evaluate(record.id, customerId);
+
+  assert.equal(evaluation.result.valid, true);
+  assert.equal(evaluation.application.id, record.id);
+  assert.deepEqual(evaluation.product, productTerms);
 });
 
 test("business failures return every check with valid false and no writes", async () => {
