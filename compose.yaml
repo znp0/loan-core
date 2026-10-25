@@ -2,7 +2,7 @@ name: loan-core
 
 x-service-defaults: &service-defaults
   init: true
-  environment:
+  environment: &service-environment
     NODE_ENV: production
     HOST: 0.0.0.0
     PORT: "3000"
@@ -50,6 +50,10 @@ services:
 
   loan-application-service:
     <<: *service-defaults
+    environment:
+      <<: *service-environment
+      LOAN_PRODUCT_SERVICE_URL: http://loan-product-service:3000
+      REPAYMENT_SERVICE_URL: http://repayment-service:3000
     env_file:
       - path: ./apps/loan-application-service/.env
         required: false
