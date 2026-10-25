@@ -7,6 +7,7 @@ import { DisbursementAccountVerificationModule } from "./modules/disbursement-ac
 import { IdentityVerificationModule } from "./modules/identity-verification/identity-verification.module";
 import { LoanApplicationsModule } from "./modules/loan-applications/loan-applications.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
+import { ValidationModule } from "./modules/validation/validation.module";
 
 @Module({
   imports: [
@@ -14,9 +15,9 @@ import { PrismaModule } from "./modules/prisma/prisma.module";
     LoanApplicationsModule,
     IdentityVerificationModule,
     DisbursementAccountVerificationModule,
+    ValidationModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })
 export class AppModule {}
-  

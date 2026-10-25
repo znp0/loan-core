@@ -99,3 +99,13 @@ export class AccountInformationIncompleteException extends AppException {
     );
   }
 }
+
+export class DependencyUnavailableException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.SERVICE_UNAVAILABLE,
+      ErrorCodes.SERVICE_UNAVAILABLE,
+      "A required service is temporarily unavailable.",
+    );
+  }
+}
