@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../generated/prisma/client";
 import {
   ApplicationNotFoundException,
   DependencyUnavailableException,
@@ -12,6 +13,7 @@ type ProductTerms = {
   minAmount: number;
   maxAmount: number;
   allowedTerms: number[];
+  annualInterestRate: string;
   minAge: number;
   maxAge: number;
   requiredDocumentTypes: string[];
@@ -56,6 +58,8 @@ function isProductTerms(value: unknown, productId: string): value is ProductTerm
     Number.isSafeInteger(terms.maxAmount) &&
     Array.isArray(terms.allowedTerms) &&
     terms.allowedTerms.every(Number.isInteger) &&
+    typeof terms.annualInterestRate === "string" &&
+    /^(?:0|[1-9]\d*)(?:\.\d{1,4})?$/.test(terms.annualInterestRate) &&
     Number.isInteger(terms.minAge) &&
     Number.isInteger(terms.maxAge) &&
     Array.isArray(terms.requiredDocumentTypes) &&
@@ -68,7 +72,17 @@ export class ValidationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async validate(applicationId: string, customerId: string) {
-    const application = await this.prisma.loanApplication.findUnique({
+    const evaluation = await this.evaluate(applicationId, customerId);
+
+    return evaluation.result;
+  }
+
+  async evaluate(
+    applicationId: string,
+    customerId: string,
+    database: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const application = await database.loanApplication.findUnique({
       where: { id: applicationId },
       include: {
         contacts: true,
@@ -89,7 +103,7 @@ export class ValidationService {
     const [product, hasActiveLoan, activeApplications] = await Promise.all([
       this.productTerms(application.productId),
       this.activeLoan(customerId),
-      this.prisma.loanApplication.count({
+      database.loanApplication.count({
         where: {
           customerId,
           id: { not: applicationId },
@@ -258,9 +272,13 @@ export class ValidationService {
     add("ACTIVE_LOAN", "customerId", !hasActiveLoan, "An unpaid loan already exists.");
 
     return {
-      valid: checks.every((check) => check.status === "PASSED"),
-      checks,
-      checkedAt: checkedAt.toISOString(),
+      result: {
+        valid: checks.every((check) => check.status === "PASSED"),
+        checks,
+        checkedAt: checkedAt.toISOString(),
+      },
+      application,
+      product,
     };
   }
 
