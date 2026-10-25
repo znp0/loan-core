@@ -22,6 +22,7 @@ services:
   loan-product-service:
     environment:
       DATABASE_URL: postgresql://loan_product_service:test-only-password@postgres:5432/loan_products
+      PRODUCT_INTERNAL_TOKEN: test-only-product-internal-token
     depends_on:
       postgres:
         condition: service_healthy
@@ -30,6 +31,8 @@ services:
     environment:
       DATABASE_URL: postgresql://loan_application_service:test-only-password@postgres:5432/loan_applications
       JWT_SECRET: ci-only-loan-core-jwt-signing-secret
+      PRODUCT_INTERNAL_TOKEN: test-only-product-internal-token
+      REPAYMENT_INTERNAL_TOKEN: test-only-repayment-internal-token
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,6 +40,7 @@ services:
   repayment-service:
     environment:
       DATABASE_URL: postgresql://repayment_service:test-only-password@postgres:5432/repayment
+      REPAYMENT_INTERNAL_TOKEN: test-only-repayment-internal-token
     depends_on:
       postgres:
         condition: service_healthy
