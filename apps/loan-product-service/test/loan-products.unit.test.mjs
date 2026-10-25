@@ -94,6 +94,31 @@ test("an inactive or missing product is not returned", async () => {
   });
 });
 
+test("internal validation terms include inactive products without exposing other fields", async () => {
+  const prisma = { loanProduct: { findUnique: async () => ({ ...product, status: "INACTIVE" }) } };
+  const response = await new LoanProductsService(prisma).getValidationTerms(product.id);
+
+  assert.deepEqual(response, {
+    id: product.id,
+    minAmount: 1000000,
+    maxAmount: 5000000,
+    allowedTerms: [6, 12],
+    minAge: 20,
+    maxAge: 60,
+    requiredDocumentTypes: ["ID_FRONT", "ID_BACK"],
+  });
+});
+
+test("internal validation terms return product not found for a missing product", async () => {
+  const prisma = { loanProduct: { findUnique: async () => null } };
+
+  await assert.rejects(new LoanProductsService(prisma).getValidationTerms(product.id), (error) => {
+    assert.equal(error.getStatus(), 404);
+    assert.equal(error.getResponse().code, "PRODUCT_NOT_FOUND");
+    return true;
+  });
+});
+
 test("filter hides unexpected details and normalizes Nest errors", () => {
   let status;
   let body;
