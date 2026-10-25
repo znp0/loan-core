@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "test": "pnpm build && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.0.2",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "12.0.1",
+    "@nestjs/testing": "12.0.2",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "22.15.3",

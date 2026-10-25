@@ -1,9 +1,29 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+  moduleFormat    = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum LoanStatus {
+  ACTIVE
+  OVERDUE
+  CLOSED
+}
+
+model Loan {
+  id            String     @id @default(uuid()) @db.Uuid
+  applicationId String     @unique(map: "loans_application_id_key") @map("application_id") @db.Uuid
+  customerId    String     @map("customer_id") @db.Uuid
+  status        LoanStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([customerId, status], map: "loans_customer_id_status_idx")
+  @@unique([customerId], map: "uq_customer_active_loan", where: raw("(status = ANY (ARRAY['ACTIVE'::\"LoanStatus\", 'OVERDUE'::\"LoanStatus\"]))"))
+  @@map("loans")
 }
