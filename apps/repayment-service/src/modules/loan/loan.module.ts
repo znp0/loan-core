@@ -10,4 +10,4 @@ import { ActiveLoanService } from "./active-loan.service";
   controllers: [ActiveLoanController],
   providers: [ActiveLoanService, RepaymentInternalTokenGuard],
 })
-export class LoansModule {}
+export class LoanModule {}

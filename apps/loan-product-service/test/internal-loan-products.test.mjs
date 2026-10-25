@@ -7,8 +7,8 @@ import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 
 import { HttpExceptionFilter } from "../dist/common/filters/http-exception.filter.js";
-import { InternalLoanProductsController } from "../dist/modules/loan-products/internal-loan-products.controller.js";
-import { LoanProductsService } from "../dist/modules/loan-products/loan-products.service.js";
+import { InternalLoanProductController } from "../dist/modules/loan-product/internal-loan-product.controller.js";
+import { LoanProductService } from "../dist/modules/loan-product/loan-product.service.js";
 import { ProductInternalTokenGuard } from "../dist/common/guards/product-internal-token.guard.js";
 import { PrismaService } from "../dist/modules/prisma/prisma.service.js";
 
@@ -41,9 +41,9 @@ let reads = 0;
 class TestModule {}
 
 Module({
-  controllers: [InternalLoanProductsController],
+  controllers: [InternalLoanProductController],
   providers: [
-    LoanProductsService,
+    LoanProductService,
     ProductInternalTokenGuard,
     {
       provide: PrismaService,

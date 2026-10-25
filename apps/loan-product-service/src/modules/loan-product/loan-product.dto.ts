@@ -9,7 +9,7 @@ function parseQueryInteger(value: unknown): number {
   return Number(value);
 }
 
-export class ListLoanProductsQuery {
+export class ListLoanProductQuery {
   @Transform(({ value }: { value: unknown }) => parseQueryInteger(value))
   @IsInt({ message: "Page must be a non-negative integer." })
   @Min(0, { message: "Page must be a non-negative integer." })

@@ -4,8 +4,8 @@ import test from "node:test";
 import { BadRequestException } from "@nestjs/common";
 
 import { HttpExceptionFilter } from "../dist/common/filters/http-exception.filter.js";
-import { LoanProductsService } from "../dist/modules/loan-products/loan-products.service.js";
-import { InternalLoanProductsController } from "../dist/modules/loan-products/internal-loan-products.controller.js";
+import { InternalLoanProductController } from "../dist/modules/loan-product/internal-loan-product.controller.js";
+import { LoanProductService } from "../dist/modules/loan-product/loan-product.service.js";
 
 const product = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -30,7 +30,7 @@ test("internal product reads require the configured service credential and expos
   process.env.APPLICATION_SERVICE_TOKEN = "test-internal-service-token";
   const inactive = { ...product, status: "INACTIVE" };
   const prisma = { loanProduct: { findUnique: async () => inactive } };
-  const controller = new InternalLoanProductsController(new LoanProductsService(prisma));
+  const controller = new InternalLoanProductController(new LoanProductService(prisma));
 
   try {
     for (const token of [undefined, "wrong", "x".repeat(27)]) {
@@ -59,7 +59,7 @@ test("internal product reads require the configured service credential and expos
 
 test("list maps database values into the public JSON shape", async () => {
   const prisma = { loanProduct: { findMany: async () => [product], count: async () => 1 } };
-  const response = await new LoanProductsService(prisma).listActive({ page: 0, size: 20 });
+  const response = await new LoanProductService(prisma).list({ page: 0, size: 20 });
 
   assert.deepEqual(response, {
     data: [
@@ -81,8 +81,7 @@ test("list maps database values into the public JSON shape", async () => {
 
 test("an inactive or missing product is not returned", async () => {
   const prisma = { loanProduct: { findFirst: async () => null } };
-
-  await assert.rejects(new LoanProductsService(prisma).getActiveById(product.id), (error) => {
+  await assert.rejects(new LoanProductService(prisma).get(product.id), (error) => {
     assert.equal(error.getStatus(), 404);
     assert.deepEqual(error.getResponse(), {
       code: "PRODUCT_NOT_FOUND",
@@ -96,7 +95,7 @@ test("an inactive or missing product is not returned", async () => {
 
 test("internal validation terms include inactive products without exposing other fields", async () => {
   const prisma = { loanProduct: { findUnique: async () => ({ ...product, status: "INACTIVE" }) } };
-  const response = await new LoanProductsService(prisma).getValidationTerms(product.id);
+  const response = await new LoanProductService(prisma).getValidationTerms(product.id);
 
   assert.deepEqual(response, {
     id: product.id,
@@ -113,7 +112,7 @@ test("internal validation terms include inactive products without exposing other
 test("internal validation terms return product not found for a missing product", async () => {
   const prisma = { loanProduct: { findUnique: async () => null } };
 
-  await assert.rejects(new LoanProductsService(prisma).getValidationTerms(product.id), (error) => {
+  await assert.rejects(new LoanProductService(prisma).getValidationTerms(product.id), (error) => {
     assert.equal(error.getStatus(), 404);
     assert.equal(error.getResponse().code, "PRODUCT_NOT_FOUND");
     return true;
