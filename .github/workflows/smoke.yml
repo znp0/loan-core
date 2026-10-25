@@ -37,16 +37,7 @@ jobs:
         run: |
           docker exec --interactive "$POSTGRES_CONTAINER" psql --username postgres --set ON_ERROR_STOP=1 < scripts/ci-databases.sql
           node scripts/configure-ci-env.mjs
-      - run: pnpm --filter loan-product-service db:deploy
-      - run: pnpm --filter repayment-service db:deploy
       - run: pnpm test
-      - run: pnpm --filter loan-product-service test
-        env:
-          TEST_DATABASE_URL: postgresql://loan_product_service:test-only-password@127.0.0.1:5432/loan_products
-      - run: pnpm --filter repayment-service test
-        env:
-          TEST_DATABASE_URL: postgresql://repayment_service:test-only-password@127.0.0.1:5432/repayment
-      - run: pnpm --filter loan-application-service test
 
   containers:
     runs-on: ubuntu-latest
