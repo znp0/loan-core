@@ -14,7 +14,6 @@ import {
   Max,
   MaxLength,
   Min,
-  ValidateIf,
   ValidateNested,
 } from "class-validator";
 
@@ -36,10 +35,6 @@ export class ApplicantInfoDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   @IsDateString({ strict: true })
   identityIssuedDate?: string | null;
-
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  @IsDateString({ strict: true })
-  identityExpiryDate?: string | null;
 
   @IsEmail()
   @MaxLength(254)
@@ -103,11 +98,6 @@ export class FinancialInfoDto {
 }
 
 export class DisbursementAccountDto {
-  @IsString()
-  @Matches(/\S/)
-  @MaxLength(1000)
-  bankCode?: string | null;
-
   @IsString()
   @Matches(/\S/)
   @MaxLength(1000)

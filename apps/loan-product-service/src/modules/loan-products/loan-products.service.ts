@@ -28,6 +28,12 @@ function productResponse(product: LoanProduct) {
 export class LoanProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getForApplication(productId: string) {
+    const product = await this.prisma.loanProduct.findUnique({ where: { id: productId } });
+    if (!product) throw new ProductNotFoundException();
+    return productResponse(product);
+  }
+
   async list(query: ListLoanProductsQuery) {
     const offset = query.page * query.size;
 

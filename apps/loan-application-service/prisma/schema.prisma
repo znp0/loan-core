@@ -68,7 +68,6 @@ model LoanApplication {
   dateOfBirth           DateTime?              @map("date_of_birth") @db.Date
   identityNumber        String?                @map("identity_number")
   identityIssuedDate    DateTime?              @map("identity_issued_date") @db.Date
-  identityExpiryDate    DateTime?              @map("identity_expiry_date") @db.Date
   email                 String?
   phone                 String?
   addressLine           String?                @map("address_line")
@@ -81,7 +80,6 @@ model LoanApplication {
   employmentStartDate   DateTime?              @map("employment_start_date") @db.Date
   monthlyIncome         BigInt?                @map("monthly_income")
   otherMonthlyIncome    BigInt?                @map("other_monthly_income")
-  bankCode              String?                @map("bank_code")
   accountNumber         String?                @map("account_number")
   accountHolderName     String?                @map("account_holder_name")
   verificationStatus    VerificationStatus     @default(UNVERIFIED) @map("verification_status")
