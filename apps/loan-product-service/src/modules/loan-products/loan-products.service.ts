@@ -85,6 +85,7 @@ export class LoanProductsService {
       minAmount: Number(product.minAmount),
       maxAmount: Number(product.maxAmount),
       allowedTerms: product.allowedTerms,
+      annualInterestRate: product.annualInterestRate.toFixed(4),
       minAge: product.minAge,
       maxAge: product.maxAge,
       requiredDocumentTypes: product.requiredDocumentTypes,
