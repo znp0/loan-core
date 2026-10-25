@@ -5,6 +5,7 @@ import { BadRequestException } from "@nestjs/common";
 
 import { HttpExceptionFilter } from "../dist/common/filters/http-exception.filter.js";
 import { LoanProductsService } from "../dist/modules/loan-products/loan-products.service.js";
+import { InternalLoanProductsController } from "../dist/modules/loan-products/internal-loan-products.controller.js";
 
 const product = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -22,6 +23,34 @@ const product = {
   createdAt: new Date("2026-10-24T00:00:00.000Z"),
   updatedAt: new Date("2026-10-24T00:00:00.000Z"),
 };
+
+test("internal product reads require the configured service credential and expose inactive terms", async () => {
+  const originalToken = process.env.APPLICATION_SERVICE_TOKEN;
+  process.env.APPLICATION_SERVICE_TOKEN = "test-internal-service-token";
+  const inactive = { ...product, status: "INACTIVE" };
+  const prisma = { loanProduct: { findUnique: async () => inactive } };
+  const controller = new InternalLoanProductsController(new LoanProductsService(prisma));
+  try {
+    for (const token of [undefined, "wrong", "x".repeat(27)]) {
+      assert.throws(
+        () => controller.get(product.id, token),
+        (error) => error.getStatus() === 403,
+      );
+    }
+    assert.equal(
+      (await controller.get(product.id, process.env.APPLICATION_SERVICE_TOKEN)).status,
+      "INACTIVE",
+    );
+    delete process.env.APPLICATION_SERVICE_TOKEN;
+    assert.throws(
+      () => controller.get(product.id, "anything"),
+      (error) => error.getStatus() === 403,
+    );
+  } finally {
+    if (originalToken === undefined) delete process.env.APPLICATION_SERVICE_TOKEN;
+    else process.env.APPLICATION_SERVICE_TOKEN = originalToken;
+  }
+});
 
 test("list maps database values into the public JSON shape", async () => {
   const prisma = { loanProduct: { findMany: async () => [product], count: async () => 1 } };
