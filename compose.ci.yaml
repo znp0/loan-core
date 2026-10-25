@@ -29,6 +29,7 @@ services:
   loan-application-service:
     environment:
       DATABASE_URL: postgresql://loan_application_service:test-only-password@postgres:5432/loan_applications
+      JWT_SECRET: ci-only-shared-signing-secret-at-least-32-bytes
     depends_on:
       postgres:
         condition: service_healthy
