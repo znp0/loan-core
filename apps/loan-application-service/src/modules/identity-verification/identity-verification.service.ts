@@ -15,16 +15,15 @@ export class IdentityVerificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async verify(applicationId: string, customerId: string, input: IdentityVerificationDto) {
-    const application = await this.prisma.loan_applications.findUnique({
+    const application = await this.prisma.loanApplication.findUnique({
       where: { id: applicationId },
       select: {
         id: true,
-        customer_id: true,
+        customerId: true,
         status: true,
-        identity_number: true,
-        full_name: true,
-        date_of_birth: true,
-        identity_expiry_date: true,
+        identityNumber: true,
+        fullName: true,
+        dateOfBirth: true,
       },
     });
 
@@ -32,7 +31,7 @@ export class IdentityVerificationService {
       throw new ApplicationNotFoundException();
     }
 
-    if (application.customer_id !== customerId) {
+    if (application.customerId !== customerId) {
       throw new ForbiddenException();
     }
 
@@ -44,39 +43,35 @@ export class IdentityVerificationService {
     const normalizeName = (value: string): string => value.trim().toLocaleLowerCase("vi");
     const date = (value: Date | null): string | null => value?.toISOString().slice(0, 10) ?? null;
 
-    if (application.identity_number?.trim() !== input.identityNumber.trim()) {
+    if (application.identityNumber?.trim() !== input.identityNumber.trim()) {
       mismatchedFields.push("identityNumber");
     }
     if (
-      !application.full_name ||
-      normalizeName(application.full_name) !== normalizeName(input.fullName)
+      !application.fullName ||
+      normalizeName(application.fullName) !== normalizeName(input.fullName)
     ) {
       mismatchedFields.push("fullName");
     }
-    if (date(application.date_of_birth) !== input.dateOfBirth) {
+    if (date(application.dateOfBirth) !== input.dateOfBirth) {
       mismatchedFields.push("dateOfBirth");
     }
-    if (date(application.identity_expiry_date) !== input.identityExpiryDate) {
-      mismatchedFields.push("identityExpiryDate");
-    }
-
     const status = mismatchedFields.length === 0 ? "PASSED" : "FAILED";
-    const record = await this.prisma.identity_verifications.create({
+    const record = await this.prisma.identityVerification.create({
       data: {
         id: randomUUID(),
-        application_id: applicationId,
+        applicationId,
         status,
-        mismatched_fields: mismatchedFields,
-        verified_at: new Date(),
+        mismatchedFields,
+        verifiedAt: new Date(),
       },
     });
 
     return {
       id: record.id,
-      applicationId: record.application_id,
+      applicationId: record.applicationId,
       status: record.status,
-      mismatchedFields: record.mismatched_fields,
-      verifiedAt: record.verified_at.toISOString(),
+      mismatchedFields: record.mismatchedFields,
+      verifiedAt: record.verifiedAt.toISOString(),
     };
   }
 }
