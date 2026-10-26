@@ -168,9 +168,15 @@ export class ValidationService {
       missingEmployment.push("employmentType");
     }
     if (application.employmentType === "SALARIED") {
-      if (!nonblank(application.employerName)) missingEmployment.push("employerName");
-      if (!nonblank(application.jobTitle)) missingEmployment.push("jobTitle");
-      if (!application.employmentStartDate) missingEmployment.push("employmentStartDate");
+      if (!nonblank(application.employerName)) {
+        missingEmployment.push("employerName");
+      }
+      if (!nonblank(application.jobTitle)) {
+        missingEmployment.push("jobTitle");
+      }
+      if (!application.employmentStartDate) {
+        missingEmployment.push("employmentStartDate");
+      }
     }
     add(
       "EMPLOYMENT",
@@ -258,7 +264,7 @@ export class ValidationService {
     add(
       "DISBURSEMENT_ACCOUNT",
       "disbursementAccount",
-      application.verificationStatus === "VERIFIED" &&
+      application.accountVerificationStatus === "VERIFIED" &&
         nonblank(application.accountNumber) &&
         nonblank(application.accountHolderName),
       "Complete and verify the disbursement account.",
@@ -285,7 +291,9 @@ export class ValidationService {
   private async productTerms(productId: string): Promise<ProductTerms | null> {
     const base = process.env.LOAN_PRODUCT_SERVICE_URL;
     const token = process.env.PRODUCT_INTERNAL_TOKEN;
-    if (!base || !token) throw new DependencyUnavailableException();
+    if (!base || !token) {
+      throw new DependencyUnavailableException();
+    }
     let response: Response;
     try {
       response = await fetch(
@@ -314,10 +322,14 @@ export class ValidationService {
       }
       throw new DependencyUnavailableException();
     }
-    if (!response.ok) throw new DependencyUnavailableException();
+    if (!response.ok) {
+      throw new DependencyUnavailableException();
+    }
     try {
       const value: unknown = await response.json();
-      if (isProductTerms(value, productId)) return value;
+      if (isProductTerms(value, productId)) {
+        return value;
+      }
     } catch {
       throw new DependencyUnavailableException();
     }
@@ -327,7 +339,9 @@ export class ValidationService {
   private async activeLoan(customerId: string): Promise<boolean> {
     const base = process.env.REPAYMENT_SERVICE_URL;
     const token = process.env.REPAYMENT_INTERNAL_TOKEN;
-    if (!base || !token) throw new DependencyUnavailableException();
+    if (!base || !token) {
+      throw new DependencyUnavailableException();
+    }
     let response: Response;
     try {
       response = await fetch(
@@ -340,7 +354,9 @@ export class ValidationService {
     } catch {
       throw new DependencyUnavailableException();
     }
-    if (!response.ok) throw new DependencyUnavailableException();
+    if (!response.ok) {
+      throw new DependencyUnavailableException();
+    }
     try {
       const value: unknown = await response.json();
       if (

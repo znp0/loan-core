@@ -92,15 +92,32 @@ export class LoanApplicationsService {
         }
 
         const data = this.buildUpdateData(dto);
+        const nameChanged =
+          dto.applicantInfo?.fullName !== undefined &&
+          dto.applicantInfo.fullName !== application.fullName;
+        const identityChanged =
+          nameChanged ||
+          (dto.applicantInfo?.identityNumber !== undefined &&
+            dto.applicantInfo.identityNumber !== application.identityNumber) ||
+          (dto.applicantInfo?.dateOfBirth !== undefined &&
+            dto.applicantInfo.dateOfBirth !==
+              (application.dateOfBirth?.toISOString().slice(0, 10) ?? null));
 
-        if (
-          dto.disbursementAccount &&
+        if (identityChanged) {
+          await tx.identityVerification.updateMany({
+            where: { applicationId: id, invalidatedAt: null },
+            data: { invalidatedAt: new Date() },
+          });
+        }
+
+        const accountChanged =
+          dto.disbursementAccount !== undefined &&
           Object.entries(dto.disbursementAccount).some(
             ([key, value]) =>
               value !== undefined &&
               application[key as "accountNumber" | "accountHolderName"] !== value,
-          )
-        ) {
+          );
+        if (nameChanged || accountChanged) {
           data.accountVerificationStatus = "UNVERIFIED";
         }
 
