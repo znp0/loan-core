@@ -11,16 +11,14 @@ import {
 } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import {
-  CustomerAccessGuard,
-  type CustomerRequest,
-} from "../../common/guards/customer-access.guard";
+import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
 import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { SubmissionDto } from "./submission.dto";
 import { SubmissionService } from "./submission.service";
 
 @Controller("loan-applications/:applicationId/submit")
-@UseGuards(CustomerAccessGuard)
+@UseGuards(RoleGuard)
+@RequireRoles("CUSTOMER")
 @UsePipes(new RequestValidationPipe())
 export class SubmissionController {
   constructor(private readonly submissionService: SubmissionService) {}

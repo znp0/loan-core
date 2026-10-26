@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 
-import { CustomerAccessGuard } from "./customer-access.guard";
+import { RoleGuard } from "./role.guard";
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { CustomerAccessGuard } from "./customer-access.guard";
       },
     }),
   ],
-  providers: [CustomerAccessGuard],
-  exports: [CustomerAccessGuard, JwtModule],
+  providers: [RoleGuard],
+  exports: [RoleGuard, JwtModule],
 })
-export class CustomerAccessModule {}
+export class RoleGuardModule {}

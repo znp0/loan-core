@@ -1,10 +1,7 @@
 import { Controller, Get, Param, ParseUUIDPipe, Req, UseGuards } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import {
-  CustomerAccessGuard,
-  type CustomerRequest,
-} from "../../common/guards/customer-access.guard";
+import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
 import { ValidationService } from "./validation.service";
 
 type ValidationRequest = CustomerRequest & {
@@ -14,7 +11,8 @@ type ValidationRequest = CustomerRequest & {
 };
 
 @Controller("loan-applications/:applicationId/validation")
-@UseGuards(CustomerAccessGuard)
+@UseGuards(RoleGuard)
+@RequireRoles("CUSTOMER")
 export class ValidationController {
   constructor(private readonly validationService: ValidationService) {}
 

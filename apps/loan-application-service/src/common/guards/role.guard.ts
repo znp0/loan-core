@@ -18,7 +18,7 @@ const ACCESS_ROLES = "access-roles";
 export const RequireRoles = (...roles: AccessRole[]) => SetMetadata(ACCESS_ROLES, roles);
 
 @Injectable()
-export class CustomerAccessGuard implements CanActivate {
+export class RoleGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly reflector: Reflector,
@@ -64,9 +64,9 @@ export class CustomerAccessGuard implements CanActivate {
     const allowedRoles = this.reflector.getAllAndOverride<AccessRole[]>(ACCESS_ROLES, [
       context.getHandler(),
       context.getClass(),
-    ]) ?? ["CUSTOMER"];
+    ]);
 
-    if (typeof claims.role !== "string" || !allowedRoles.includes(claims.role as AccessRole)) {
+    if (!allowedRoles?.includes(claims.role as AccessRole)) {
       throw new ForbiddenException();
     }
 
