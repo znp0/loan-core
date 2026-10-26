@@ -8,6 +8,7 @@ import {
   PhoneAlreadyExistsException,
   InvalidCredentialsException,
 } from "../../common/exceptions/app.exceptions";
+import { Prisma, type Customer } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, RegisterDto } from "./auth.dto";
 
@@ -35,16 +36,33 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(password);
 
-    const customer = await this.prisma.customer.create({
-      data: {
-        phone,
-        passwordHash,
-        fullName,
-        email,
-        role: "CUSTOMER",
-      },
-      select: { id: true, role: true },
-    });
+    let customer: Pick<Customer, "id" | "role">;
+
+    try {
+      customer = await this.prisma.customer.create({
+        data: {
+          phone,
+          passwordHash,
+          fullName,
+          email,
+          role: "CUSTOMER",
+        },
+        select: { id: true, role: true },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const customerWithPhone = await this.prisma.customer.findUnique({
+          where: { phone },
+          select: { id: true },
+        });
+
+        if (customerWithPhone) {
+          throw new PhoneAlreadyExistsException();
+        }
+      }
+
+      throw error;
+    }
 
     return this.issueTokens(customer.id, customer.role);
   }

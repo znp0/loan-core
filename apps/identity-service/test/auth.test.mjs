@@ -240,6 +240,34 @@ test("email is contact information: two different phones can share one email", a
   assert.equal((await post("register", { ...account(), email: first.email })).status, 201);
 });
 
+test(
+  "a uniqueness violation without an existing phone remains a server error",
+  { skip: Boolean(databaseUrl) },
+  async () => {
+    const original = repository.customer.create;
+
+    try {
+      repository.customer.create = async () => {
+        throw new Prisma.PrismaClientKnownRequestError("Private constraint detail", {
+          code: "P2002",
+          clientVersion: "test",
+        });
+      };
+
+      const response = await post("register", account());
+
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {
+        statusCode: 500,
+        message: "Internal server error",
+      });
+      assert.deepEqual(response.headers.getSetCookie(), []);
+    } finally {
+      repository.customer.create = original;
+    }
+  },
+);
+
 test("login accepts only phone and password, returns only a message, and sets both cookies", async () => {
   const input = account();
 
