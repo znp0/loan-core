@@ -1,7 +1,6 @@
 generator client {
   provider        = "prisma-client"
   output          = "../src/generated/prisma"
-  previewFeatures = ["partialIndexes"]
   moduleFormat    = "cjs"
 }
 
@@ -83,6 +82,7 @@ model LoanApplication {
   accountNumber             String?                @map("account_number")
   accountHolderName         String?                @map("account_holder_name")
   accountVerificationStatus VerificationStatus     @default(UNVERIFIED) @map("account_verification_status")
+  submittedAt               DateTime?              @map("submitted_at") @db.Timestamptz(3)
   createdAt                 DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                 DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
   contacts                  ApplicationContact[]
