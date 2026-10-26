@@ -108,6 +108,12 @@ export function memoryPrisma() {
         return include ? included(row) : { ...row };
       },
     },
+    identityVerification: {
+      // shortcut: this fixture has no identity rows, add storage when these HTTP tests create any.
+      async updateMany() {
+        return { count: 0 };
+      },
+    },
     applicationContact: {
       async deleteMany({ where }) {
         contacts = contacts.filter((row) => row.applicationId !== where.applicationId);

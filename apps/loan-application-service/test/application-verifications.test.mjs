@@ -19,6 +19,13 @@ let app;
 let url;
 
 const repository = {
+  async $transaction(callback) {
+    return callback(repository);
+  },
+  async $queryRaw(_query, applicationId) {
+    const record = applications.get(applicationId);
+    return record ? [{ id: record.id }] : [];
+  },
   loanApplication: {
     async findUnique({ where }) {
       return applications.get(where.id) ?? null;
@@ -67,7 +74,7 @@ function application(overrides = {}) {
     dateOfBirth: new Date("1990-01-31T00:00:00.000Z"),
     accountNumber: "0123456789",
     accountHolderName: "NGUYEN VAN A",
-    verificationStatus: "UNVERIFIED",
+    accountVerificationStatus: "UNVERIFIED",
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
   };
@@ -260,7 +267,7 @@ test("account verification accepts a normalized holder name and masks the number
   assert.equal(result.maskedAccountNumber, "******6789");
   assert.deepEqual(result.mismatchedFields, []);
   assert.ok(!Number.isNaN(Date.parse(result.verifiedAt)));
-  assert.equal(record.verificationStatus, "VERIFIED");
+  assert.equal(record.accountVerificationStatus, "VERIFIED");
   assert.ok(record.updatedAt > new Date("2026-01-01T00:00:00.000Z"));
   assert.ok(!JSON.stringify(result).includes("0123456789"));
 });
@@ -276,7 +283,7 @@ test("invalid bank, number and name return FAILED in field order", async () => {
   assert.equal(result.status, "FAILED");
   assert.deepEqual(result.mismatchedFields, ["accountNumber", "accountHolderName"]);
   assert.equal(result.maskedAccountNumber, "******");
-  assert.equal(record.verificationStatus, "FAILED");
+  assert.equal(record.accountVerificationStatus, "FAILED");
   assert.ok(!JSON.stringify(result).includes('"1234"'));
 });
 
@@ -292,20 +299,20 @@ test("missing borrower name is a failed name match, not an incomplete account", 
 test("a later failed check replaces an earlier VERIFIED status", async () => {
   const record = application();
   assert.equal((await verifyAccount(record.id)).status, 200);
-  assert.equal(record.verificationStatus, "VERIFIED");
+  assert.equal(record.accountVerificationStatus, "VERIFIED");
   record.accountHolderName = "OTHER PERSON";
   const response = await verifyAccount(record.id);
   assert.equal(response.status, 200);
   assert.equal((await response.json()).status, "FAILED");
-  assert.equal(record.verificationStatus, "FAILED");
+  assert.equal(record.accountVerificationStatus, "FAILED");
 });
 
 test("missing account fields return 422 without changing prior status", async () => {
   for (const field of ["accountNumber", "accountHolderName"]) {
     for (const value of [null, "   "]) {
-      const record = application({ [field]: value, verificationStatus: "VERIFIED" });
+      const record = application({ [field]: value, accountVerificationStatus: "VERIFIED" });
       await assertError(await verifyAccount(record.id), 422, "ACCOUNT_INFORMATION_INCOMPLETE");
-      assert.equal(record.verificationStatus, "VERIFIED");
+      assert.equal(record.accountVerificationStatus, "VERIFIED");
     }
   }
 });
@@ -325,7 +332,7 @@ test("account verification rejects unexpected input before updating status", asy
   );
   await assertError(textResponse, 400, "VALIDATION_ERROR");
   await assertError(await verifyAccount("not-a-uuid"), 400, "VALIDATION_ERROR");
-  assert.equal(record.verificationStatus, "UNVERIFIED");
+  assert.equal(record.accountVerificationStatus, "UNVERIFIED");
 });
 
 test("account verification requires a CUSTOMER owner and DRAFT application", async () => {
@@ -344,5 +351,5 @@ test("account verification requires a CUSTOMER owner and DRAFT application", asy
   await assertError(await verifyAccount(randomUUID()), 404, "APPLICATION_NOT_FOUND");
   record.status = "SUBMITTED";
   await assertError(await verifyAccount(record.id), 409, "APPLICATION_NOT_EDITABLE");
-  assert.equal(record.verificationStatus, "UNVERIFIED");
+  assert.equal(record.accountVerificationStatus, "UNVERIFIED");
 });

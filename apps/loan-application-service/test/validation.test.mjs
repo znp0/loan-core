@@ -103,7 +103,7 @@ function application(overrides = {}) {
     monthlyIncome: 10000000n,
     accountNumber: "0123456789",
     accountHolderName: "NGUYEN VAN A",
-    verificationStatus: "VERIFIED",
+    accountVerificationStatus: "VERIFIED",
     contacts: [
       { fullName: "Contact One", relationship: "Friend", phone: "0900000001" },
       { fullName: "Contact Two", relationship: "Sibling", phone: "0900000002" },
@@ -145,21 +145,22 @@ before(async () => {
       if (productUnavailable) {
         throw new TypeError("dependency unavailable");
       }
-      return new Response(
-        productStatus === 404
-          ? productMalformed404
-            ? "not-json"
-            : JSON.stringify({
-                code: productErrorCode,
-                message: "Product unavailable",
-                details: [],
-              })
-          : JSON.stringify(productTerms),
-        {
-          status: productStatus,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      let responseBody = JSON.stringify(productTerms);
+      if (productStatus === 404) {
+        if (productMalformed404) {
+          responseBody = "not-json";
+        } else {
+          responseBody = JSON.stringify({
+            code: productErrorCode,
+            message: "Product unavailable",
+            details: [],
+          });
+        }
+      }
+      return new Response(responseBody, {
+        status: productStatus,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     if (target.startsWith("http://repayment.internal")) {
       assert.equal(
@@ -239,7 +240,7 @@ test("business failures return every check with valid false and no writes", asyn
       { id: randomUUID(), status: "FAILED", invalidatedAt: null, verifiedAt: new Date() },
     ],
     documents: [{ type: "ID_FRONT", isCurrent: true }],
-    verificationStatus: "FAILED",
+    accountVerificationStatus: "FAILED",
   });
   application({ id: randomUUID(), customerId, status: "SUBMITTED" });
   hasActiveLoan = true;
