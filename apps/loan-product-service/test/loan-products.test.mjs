@@ -26,10 +26,13 @@ const ids = [1, 2, 3, 4].map(
 
 async function availablePort() {
   const server = createServer();
+
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const { port } = server.address();
+
   await new Promise((resolve) => server.close(resolve));
+
   return port;
 }
 
@@ -42,6 +45,7 @@ test("public loan product reads expose only active products", async () => {
     stdio: ["ignore", "pipe", "pipe"],
   });
   let logs = "";
+
   child.stdout.on("data", (chunk) => {
     logs += chunk;
   });
@@ -49,6 +53,7 @@ test("public loan product reads expose only active products", async () => {
     logs += chunk;
   });
   const exited = once(child, "exit");
+
   exited.catch(() => {});
   let inserted = false;
 
@@ -60,11 +65,18 @@ test("public loan product reads expose only active products", async () => {
     );
     const base = `http://127.0.0.1:${port}/api/v1/loan-products`;
     let ready = false;
+
     for (let attempt = 0; attempt < 100; attempt++) {
-      if (child.exitCode !== null) throw new Error(`Service exited before ready: ${logs}`);
+      if (child.exitCode !== null) {
+        throw new Error(`Service exited before ready: ${logs}`);
+      }
+
       try {
         ready = (await fetch(`http://127.0.0.1:${port}/api/v1/health`)).ok;
-        if (ready) break;
+
+        if (ready) {
+          break;
+        }
       } catch {
         await setTimeout(100);
       }
@@ -72,6 +84,7 @@ test("public loan product reads expose only active products", async () => {
     assert.ok(ready, `Service did not start: ${logs}`);
 
     const empty = await fetch(base);
+
     assert.equal(empty.status, 200);
     assert.deepEqual(await empty.json(), {
       data: [],
@@ -93,6 +106,7 @@ test("public loan product reads expose only active products", async () => {
       requiredDocumentTypes: ["ID_FRONT", "ID_BACK"],
       updatedAt: new Date("2026-10-24T00:00:00.000Z"),
     };
+
     await prisma.loanProduct.createMany({
       data: [
         {
@@ -128,8 +142,10 @@ test("public loan product reads expose only active products", async () => {
     inserted = true;
 
     const first = await fetch(`${base}?page=0&size=2`);
+
     assert.equal(first.status, 200);
     const page = await first.json();
+
     assert.deepEqual(
       page.data.map((product) => product.id),
       [ids[2], ids[1]],
@@ -152,16 +168,19 @@ test("public loan product reads expose only active products", async () => {
       updatedAt: "2026-10-24T00:00:00.000Z",
     });
     const second = await fetch(`${base}?page=1&size=2`);
+
     assert.deepEqual(
       (await second.json()).data.map((product) => product.id),
       [ids[0]],
     );
     const detail = await fetch(`${base}/${ids[0]}`);
+
     assert.equal(detail.status, 200);
     assert.equal((await detail.json()).id, ids[0]);
 
     for (const id of [ids[3], "00000000-0000-4000-8000-000000000005"]) {
       const response = await fetch(`${base}/${id}`);
+
       assert.equal(response.status, 404);
       assert.deepEqual(await response.json(), {
         code: "PRODUCT_NOT_FOUND",
@@ -169,12 +188,15 @@ test("public loan product reads expose only active products", async () => {
         details: [],
       });
     }
+
     for (const query of ["page=-1", "page=1.5", "size=0", "size=101", "status=INACTIVE"]) {
       const response = await fetch(`${base}?${query}`);
+
       assert.equal(response.status, 400);
       assert.equal((await response.json()).code, "VALIDATION_ERROR");
     }
     const badId = await fetch(`${base}/not-a-uuid`);
+
     assert.equal(badId.status, 400);
     assert.deepEqual(await badId.json(), {
       code: "VALIDATION_ERROR",
@@ -182,15 +204,21 @@ test("public loan product reads expose only active products", async () => {
       details: [{ field: "productId", message: "Product ID must be a UUID." }],
     });
     const unknown = await fetch(`http://127.0.0.1:${port}/api/v1/not-a-route`);
+
     assert.deepEqual(await unknown.json(), {
       code: "NOT_FOUND",
       message: "Not Found",
       details: [],
     });
   } finally {
-    if (child.exitCode === null) child.kill("SIGTERM");
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+    }
     await exited;
-    if (inserted) await prisma.loanProduct.deleteMany({ where: { id: { in: ids } } });
+
+    if (inserted) {
+      await prisma.loanProduct.deleteMany({ where: { id: { in: ids } } });
+    }
     await prisma.$disconnect();
   }
 });

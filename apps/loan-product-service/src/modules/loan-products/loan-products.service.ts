@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
-import { type LoanProduct, LoanProductStatus } from "../../generated/prisma/client";
 import { ProductNotFoundException } from "../../common/exceptions/app.exceptions";
+import { type LoanProduct, LoanProductStatus } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { ListLoanProductsQuery } from "./loan-products.dto";
 
@@ -30,7 +30,11 @@ export class LoanProductsService {
 
   async getForApplication(productId: string) {
     const product = await this.prisma.loanProduct.findUnique({ where: { id: productId } });
-    if (!product) throw new ProductNotFoundException();
+
+    if (!product) {
+      throw new ProductNotFoundException();
+    }
+
     return productResponse(product);
   }
 

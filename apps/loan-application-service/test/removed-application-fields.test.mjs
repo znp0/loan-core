@@ -27,6 +27,7 @@ test("applicant DTO rejects the removed identity expiry field", async () => {
     identityExpiryDate: "2030-01-01",
   });
   const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
+
   assert.equal(errors.length, 1);
   assert.equal(errors[0].property, "identityExpiryDate");
   assert.ok(errors[0].constraints.whitelistValidation);
@@ -39,6 +40,7 @@ test("account DTO rejects the removed bank code field", async () => {
     bankCode: "TEST",
   });
   const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
+
   assert.equal(errors.length, 1);
   assert.equal(errors[0].property, "bankCode");
   assert.ok(errors[0].constraints.whitelistValidation);
@@ -60,6 +62,7 @@ test("application response omits both removed fields", async () => {
     include: applicationInclude,
   });
   const response = applicationResponse(application);
+
   assert.equal(Object.hasOwn(response.applicantInfo, "identityExpiryDate"), false);
   assert.equal(Object.hasOwn(response.disbursementAccount, "bankCode"), false);
   assert.deepEqual(response.disbursementAccount, {

@@ -6,7 +6,7 @@ import { LoanProductsService } from "./loan-products.service";
 
 @Controller("internal/loan-products")
 export class InternalLoanProductsController {
-  constructor(private readonly products: LoanProductsService) {}
+  constructor(private readonly loanProductsService: LoanProductsService) {}
 
   @Get(":productId")
   get(
@@ -14,6 +14,7 @@ export class InternalLoanProductsController {
     @Headers("x-service-token") token?: string,
   ) {
     const expected = process.env.APPLICATION_SERVICE_TOKEN;
+
     if (
       !expected ||
       !token ||
@@ -25,6 +26,7 @@ export class InternalLoanProductsController {
         403,
       );
     }
-    return this.products.getForApplication(id);
+
+    return this.loanProductsService.getForApplication(id);
   }
 }
