@@ -5,19 +5,19 @@ import type { Prisma } from "../../generated/prisma/client";
 
 @Injectable()
 export class ApplicationEligibilityPolicy {
-  async assertAvailable(tx: Prisma.TransactionClient, customerId: string): Promise<void> {
-    const existing = await tx.loanApplication.findFirst({
+  async assertNoActiveApplication(tx: Prisma.TransactionClient, customerId: string): Promise<void> {
+    const activeApplication = await tx.loanApplication.findFirst({
       where: { customerId, status: { in: ["DRAFT", "SUBMITTED", "APPROVED"] } },
       select: { id: true },
     });
 
-    if (existing) {
-      throw activeApplicationExists();
+    if (activeApplication) {
+      throw activeApplicationExistsException();
     }
   }
 }
 
-export function activeApplicationExists(): AppException {
+export function activeApplicationExistsException(): AppException {
   return new AppException(
     409,
     "ACTIVE_APPLICATION_EXISTS",

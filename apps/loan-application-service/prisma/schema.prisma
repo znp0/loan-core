@@ -55,39 +55,39 @@ enum LoanContractInterestCalculationMethod {
 }
 
 model LoanApplication {
-  id                    String                 @id @default(uuid()) @db.Uuid
-  applicationNumber     String                 @unique @map("application_number")
-  customerId            String                 @map("customer_id") @db.Uuid
-  productId             String                 @map("product_id") @db.Uuid
-  status                ApplicationStatus      @default(DRAFT)
-  requestedAmount       BigInt                 @map("requested_amount")
-  termMonths            Int                    @map("term_months")
-  purpose               String
-  fullName              String?                @map("full_name")
-  dateOfBirth           DateTime?              @map("date_of_birth") @db.Date
-  identityNumber        String?                @map("identity_number")
-  identityIssuedDate    DateTime?              @map("identity_issued_date") @db.Date
-  email                 String?
-  phone                 String?
-  addressLine           String?                @map("address_line")
-  ward                  String?
-  district              String?
-  province              String?
-  employmentType        EmploymentType?        @map("employment_type")
-  employerName          String?                @map("employer_name")
-  jobTitle              String?                @map("job_title")
-  employmentStartDate   DateTime?              @map("employment_start_date") @db.Date
-  monthlyIncome         BigInt?                @map("monthly_income")
-  otherMonthlyIncome    BigInt?                @map("other_monthly_income")
-  accountNumber         String?                @map("account_number")
-  accountHolderName     String?                @map("account_holder_name")
-  verificationStatus    VerificationStatus     @default(UNVERIFIED) @map("verification_status")
-  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
-  contacts              ApplicationContact[]
-  documents             ApplicationDocument[]
-  identityVerifications IdentityVerification[]
-  contracts             LoanContract[]
+  id                        String                 @id @default(uuid()) @db.Uuid
+  applicationNumber         String                 @unique @map("application_number")
+  customerId                String                 @map("customer_id") @db.Uuid
+  productId                 String                 @map("product_id") @db.Uuid
+  status                    ApplicationStatus      @default(DRAFT)
+  requestedAmount           BigInt                 @map("requested_amount")
+  termMonths                Int                    @map("term_months")
+  purpose                   String
+  fullName                  String?                @map("full_name")
+  dateOfBirth               DateTime?              @map("date_of_birth") @db.Date
+  identityNumber            String?                @map("identity_number")
+  identityIssuedDate        DateTime?              @map("identity_issued_date") @db.Date
+  email                     String?
+  phone                     String?
+  addressLine               String?                @map("address_line")
+  ward                      String?
+  district                  String?
+  province                  String?
+  employmentType            EmploymentType?        @map("employment_type")
+  employerName              String?                @map("employer_name")
+  jobTitle                  String?                @map("job_title")
+  employmentStartDate       DateTime?              @map("employment_start_date") @db.Date
+  monthlyIncome             BigInt?                @map("monthly_income")
+  otherMonthlyIncome        BigInt?                @map("other_monthly_income")
+  accountNumber             String?                @map("account_number")
+  accountHolderName         String?                @map("account_holder_name")
+  accountVerificationStatus VerificationStatus     @default(UNVERIFIED) @map("account_verification_status")
+  createdAt                 DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  contacts                  ApplicationContact[]
+  documents                 ApplicationDocument[]
+  identityVerifications     IdentityVerification[]
+  contracts                 LoanContract[]
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([productId])
@@ -124,7 +124,6 @@ model ApplicationDocument {
   @@map("application_documents")
 }
 
-
 model IdentityVerification {
   id               String                     @id @default(uuid()) @db.Uuid
   applicationId    String                     @map("application_id") @db.Uuid
@@ -133,8 +132,8 @@ model IdentityVerification {
   mismatchedFields String[]                   @default([]) @map("mismatched_fields")
   verifiedAt       DateTime                   @map("verified_at") @db.Timestamptz(3)
 
-  invalidatedAt    DateTime?                  @map("invalidated_at") @db.Timestamptz(3)
-  createdAt        DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  invalidatedAt DateTime? @map("invalidated_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([applicationId, verifiedAt(sort: Desc), id(sort: Desc)])
   @@map("identity_verifications")

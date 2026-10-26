@@ -14,7 +14,7 @@ export class AuthController {
   async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) response: Response) {
     const tokens = await this.authService.register(registerDto);
 
-    this.setCookies(response, tokens);
+    this.setAuthCookies(response, tokens);
 
     return { message: "Register successful" };
   }
@@ -24,12 +24,12 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
     const tokens = await this.authService.login(loginDto);
 
-    this.setCookies(response, tokens);
+    this.setAuthCookies(response, tokens);
 
     return { message: "Login successful" };
   }
 
-  private setCookies(
+  private setAuthCookies(
     response: Response,
     tokens: { accessToken: string; refreshToken: string },
   ): void {

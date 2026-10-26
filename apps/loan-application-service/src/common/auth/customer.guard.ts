@@ -3,7 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { isUUID } from "class-validator";
 import type { Request } from "express";
 
-import { AppException, forbidden } from "../exceptions/app.exceptions";
+import { AppException, forbiddenException } from "../exceptions/app.exceptions";
 
 export interface CustomerRequest extends Request {
   customerId: string;
@@ -43,7 +43,7 @@ export class CustomerGuard implements CanActivate {
     }
 
     if (payload.role !== "CUSTOMER") {
-      throw forbidden();
+      throw forbiddenException();
     }
 
     request.customerId = payload.sub as string;

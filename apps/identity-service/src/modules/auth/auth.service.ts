@@ -12,7 +12,7 @@ import { Prisma, type Customer } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, RegisterDto } from "./auth.dto";
 
-function passwordInput(password: string): string {
+function prehashPassword(password: string): string {
   return createHash("sha256").update(password).digest("base64");
 }
 
@@ -78,7 +78,7 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
-    const isPasswordValid = await compare(passwordInput(password), customer.passwordHash);
+    const isPasswordValid = await compare(prehashPassword(password), customer.passwordHash);
 
     if (!isPasswordValid) {
       throw new InvalidCredentialsException();
@@ -88,7 +88,7 @@ export class AuthService {
   }
 
   private async hashPassword(password: string): Promise<string> {
-    return hash(passwordInput(password), 12);
+    return hash(prehashPassword(password), 12);
   }
 
   private async issueTokens(id: string, role: string) {

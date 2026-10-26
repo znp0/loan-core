@@ -64,6 +64,6 @@ export class LoanApplicationsController {
     @Body() dto: UploadDocumentDto,
     @UploadedFile() file?: UploadedDocument,
   ) {
-    return this.loanApplicationsService.upload(request.customerId, id, dto, file);
+    return this.loanApplicationsService.uploadDocument(request.customerId, id, dto, file);
   }
 }

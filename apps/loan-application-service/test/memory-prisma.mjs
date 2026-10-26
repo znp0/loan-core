@@ -75,7 +75,7 @@ export function memoryPrisma() {
           ...Object.fromEntries(nullable.map((key) => [key, null])),
           id: randomUUID(),
           status: "DRAFT",
-          verificationStatus: "UNVERIFIED",
+          accountVerificationStatus: "UNVERIFIED",
           createdAt: new Date(),
           updatedAt: new Date(),
           ...data,

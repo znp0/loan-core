@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import { AppException } from "../../common/exceptions/app.exceptions";
 
-export interface ApplicationProduct {
+export interface LoanProductTerms {
   id: string;
   status: "ACTIVE" | "INACTIVE";
   minAmount: number;
@@ -12,17 +12,17 @@ export interface ApplicationProduct {
 }
 
 @Injectable()
-export class ProductClient {
-  async get(id: string): Promise<ApplicationProduct> {
+export class LoanProductClient {
+  async getById(productId: string): Promise<LoanProductTerms> {
     try {
-      const base = process.env.LOAN_PRODUCT_SERVICE_URL ?? "http://127.0.0.1:3002";
+      const baseUrl = process.env.LOAN_PRODUCT_SERVICE_URL ?? "http://127.0.0.1:3002";
       const token = process.env.APPLICATION_SERVICE_TOKEN;
 
       if (!token) {
         throw new Error("Service token is not configured");
       }
 
-      const response = await fetch(`${base}/api/v1/internal/loan-products/${id}`, {
+      const response = await fetch(`${baseUrl}/api/v1/internal/loan-products/${productId}`, {
         headers: { "x-service-token": token },
         signal: AbortSignal.timeout(5000),
         redirect: "error",
@@ -42,7 +42,7 @@ export class ProductClient {
 
       const product: unknown = await response.json();
 
-      if (!isProduct(product) || product.id !== id) {
+      if (!isLoanProductTerms(product) || product.id !== productId) {
         throw new Error("Invalid product response");
       }
 
@@ -61,7 +61,7 @@ export class ProductClient {
   }
 }
 
-function isProduct(value: unknown): value is ApplicationProduct {
+function isLoanProductTerms(value: unknown): value is LoanProductTerms {
   return (
     typeof value === "object" &&
     value !== null &&

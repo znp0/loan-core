@@ -59,7 +59,7 @@ test("internal product reads require the configured service credential and expos
 
 test("list maps database values into the public JSON shape", async () => {
   const prisma = { loanProduct: { findMany: async () => [product], count: async () => 1 } };
-  const response = await new LoanProductsService(prisma).list({ page: 0, size: 20 });
+  const response = await new LoanProductsService(prisma).listActive({ page: 0, size: 20 });
 
   assert.deepEqual(response, {
     data: [
@@ -82,7 +82,7 @@ test("list maps database values into the public JSON shape", async () => {
 test("an inactive or missing product is not returned", async () => {
   const prisma = { loanProduct: { findFirst: async () => null } };
 
-  await assert.rejects(new LoanProductsService(prisma).get(product.id), (error) => {
+  await assert.rejects(new LoanProductsService(prisma).getActiveById(product.id), (error) => {
     assert.equal(error.getStatus(), 404);
     assert.deepEqual(error.getResponse(), {
       code: "PRODUCT_NOT_FOUND",

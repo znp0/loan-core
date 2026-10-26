@@ -28,7 +28,7 @@ function productResponse(product: LoanProduct) {
 export class LoanProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getForApplication(productId: string) {
+  async getById(productId: string) {
     const product = await this.prisma.loanProduct.findUnique({ where: { id: productId } });
 
     if (!product) {
@@ -38,7 +38,7 @@ export class LoanProductsService {
     return productResponse(product);
   }
 
-  async list(query: ListLoanProductsQuery) {
+  async listActive(query: ListLoanProductsQuery) {
     const offset = query.page * query.size;
 
     const where = { status: LoanProductStatus.ACTIVE };
@@ -61,7 +61,7 @@ export class LoanProductsService {
     };
   }
 
-  async get(productId: string) {
+  async getActiveById(productId: string) {
     const product = await this.prisma.loanProduct.findFirst({
       where: { id: productId, status: LoanProductStatus.ACTIVE },
     });
