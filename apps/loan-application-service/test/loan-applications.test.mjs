@@ -330,7 +330,7 @@ test("loan application HTTP contract", async (t) => {
         assert.deepEqual(updated.financialInfo, updateInput().financialInfo);
         await prisma.loanApplication.update({
           where: { id: application.id },
-          data: { verificationStatus: "VERIFIED" },
+          data: { accountVerificationStatus: "VERIFIED" },
         });
         response = await request("PATCH", path, updateInput({ purpose: "Education" }), auth);
         assert.equal(response.status, 200);

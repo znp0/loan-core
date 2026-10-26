@@ -27,6 +27,6 @@ export class InternalLoanProductsController {
       );
     }
 
-    return this.loanProductsService.getForApplication(id);
+    return this.loanProductsService.getById(id);
   }
 }

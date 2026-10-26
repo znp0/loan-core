@@ -12,7 +12,7 @@ export class ValidationException extends AppException {
   }
 }
 
-export function notEditable(): AppException {
+export function applicationNotEditableException(): AppException {
   return new AppException(
     409,
     "APPLICATION_NOT_EDITABLE",
@@ -20,6 +20,6 @@ export function notEditable(): AppException {
   );
 }
 
-export function forbidden(): AppException {
+export function forbiddenException(): AppException {
   return new AppException(403, "FORBIDDEN", "You do not have permission to perform this action.");
 }

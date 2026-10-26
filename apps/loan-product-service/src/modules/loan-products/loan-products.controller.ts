@@ -12,7 +12,7 @@ export class LoanProductsController {
 
   @Get()
   list(@Query() query: ListLoanProductsQuery) {
-    return this.loanProductsService.list(query);
+    return this.loanProductsService.listActive(query);
   }
 
   @Get(":productId")
@@ -26,6 +26,6 @@ export class LoanProductsController {
     )
     productId: string,
   ) {
-    return this.loanProductsService.get(productId);
+    return this.loanProductsService.getActiveById(productId);
   }
 }

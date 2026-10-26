@@ -5,9 +5,9 @@ import { CustomerGuard } from "../../common/auth/customer.guard";
 import { PrismaModule } from "../prisma/prisma.module";
 import { ApplicationEligibilityPolicy } from "./application-eligibility.policy";
 import { DocumentStorage } from "./document.storage";
+import { LoanProductClient } from "./loan-product.client";
 import { LoanApplicationsController } from "./loan-applications.controller";
 import { LoanApplicationsService } from "./loan-applications.service";
-import { ProductClient } from "./product.client";
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ import { ProductClient } from "./product.client";
   providers: [
     CustomerGuard,
     LoanApplicationsService,
-    ProductClient,
+    LoanProductClient,
     DocumentStorage,
     ApplicationEligibilityPolicy,
   ],

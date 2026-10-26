@@ -65,7 +65,7 @@ export function applicationResponse(application: ApplicationRecord) {
     disbursementAccount: {
       accountNumber: application.accountNumber,
       accountHolderName: application.accountHolderName,
-      verificationStatus: application.verificationStatus,
+      verificationStatus: application.accountVerificationStatus,
     },
     documents: application.documents.map(documentResponse),
     createdAt: application.createdAt.toISOString(),

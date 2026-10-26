@@ -6,44 +6,44 @@ import { Injectable } from "@nestjs/common";
 import {
   AppException,
   ValidationException,
-  forbidden,
-  notEditable,
+  forbiddenException,
+  applicationNotEditableException,
 } from "../../common/exceptions/app.exceptions";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { ApplicationEligibilityPolicy } from "./application-eligibility.policy";
 import { applicationInclude, applicationResponse, documentResponse } from "./application.response";
 import { DocumentStorage } from "./document.storage";
+import { LoanProductClient, type LoanProductTerms } from "./loan-product.client";
 import { MAX_DOCUMENT_SIZE } from "./loan-applications.constants";
 import {
   CreateApplicationDto,
   UpdateApplicationDto,
   UploadDocumentDto,
 } from "./loan-applications.dto";
-import { ProductClient, type ApplicationProduct } from "./product.client";
 import type { UploadedDocument } from "./uploaded-document";
 
 @Injectable()
 export class LoanApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly products: ProductClient,
+    private readonly loanProductClient: LoanProductClient,
     private readonly storage: DocumentStorage,
     private readonly eligibility: ApplicationEligibilityPolicy,
   ) {}
 
   async create(customerId: string, dto: CreateApplicationDto) {
-    const product = await this.products.get(dto.productId);
+    const product = await this.loanProductClient.getById(dto.productId);
 
     if (product.status !== "ACTIVE") {
       throw new AppException(409, "PRODUCT_INACTIVE", "The selected loan product is inactive.");
     }
 
-    this.validateTerms(product, dto.requestedAmount, dto.termMonths);
+    this.validateRequestedTerms(product, dto.requestedAmount, dto.termMonths);
 
     const application = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${customerId}, 0))::text`;
-      await this.eligibility.assertAvailable(tx, customerId);
+      await this.eligibility.assertNoActiveApplication(tx, customerId);
 
       return tx.loanApplication.create({
         data: {
@@ -79,19 +79,19 @@ export class LoanApplicationsService {
 
     return this.prisma.$transaction(
       async (tx) => {
-        const application = await this.editable(tx, id, customerId);
+        const application = await this.lockEditableApplication(tx, id, customerId);
 
         if (dto.requestedAmount !== undefined || dto.termMonths !== undefined) {
-          const product = await this.products.get(application.productId);
+          const product = await this.loanProductClient.getById(application.productId);
 
-          this.validateTerms(
+          this.validateRequestedTerms(
             product,
             dto.requestedAmount ?? Number(application.requestedAmount),
             dto.termMonths ?? application.termMonths,
           );
         }
 
-        const data = this.patchData(dto);
+        const data = this.buildUpdateData(dto);
 
         if (
           dto.disbursementAccount &&
@@ -101,7 +101,7 @@ export class LoanApplicationsService {
               application[key as "accountNumber" | "accountHolderName"] !== value,
           )
         ) {
-          data.verificationStatus = "UNVERIFIED";
+          data.accountVerificationStatus = "UNVERIFIED";
         }
 
         if (dto.contacts) {
@@ -123,7 +123,12 @@ export class LoanApplicationsService {
     );
   }
 
-  async upload(customerId: string, id: string, dto: UploadDocumentDto, file?: UploadedDocument) {
+  async uploadDocument(
+    customerId: string,
+    id: string,
+    dto: UploadDocumentDto,
+    file?: UploadedDocument,
+  ) {
     const application = await this.prisma.loanApplication.findUnique({ where: { id } });
 
     this.assertEditable(application, customerId);
@@ -148,7 +153,7 @@ export class LoanApplicationsService {
       );
     }
 
-    const product = await this.products.get(application.productId);
+    const product = await this.loanProductClient.getById(application.productId);
 
     if (!product.requiredDocumentTypes.includes(dto.type)) {
       throw new AppException(
@@ -163,9 +168,9 @@ export class LoanApplicationsService {
 
     await this.storage.put(key, file.buffer);
 
-    const fileName = this.documentFileName(file.originalname);
+    const fileName = this.sanitizeDocumentFileName(file.originalname);
     const document = await this.prisma.$transaction(async (tx) => {
-      await this.editable(tx, id, customerId);
+      await this.lockEditableApplication(tx, id, customerId);
       await tx.applicationDocument.updateMany({
         where: { applicationId: id, type: dto.type, isCurrent: true },
         data: { isCurrent: false },
@@ -191,7 +196,7 @@ export class LoanApplicationsService {
     return documentResponse(document);
   }
 
-  private documentFileName(originalName: string): string {
+  private sanitizeDocumentFileName(originalName: string): string {
     const fileName = basename(originalName.replace(/\\/g, "/"));
     const characters = [...fileName].filter((character) => {
       const code = character.charCodeAt(0);
@@ -203,7 +208,11 @@ export class LoanApplicationsService {
     return sanitizedName || "document";
   }
 
-  private async editable(tx: Prisma.TransactionClient, id: string, customerId: string) {
+  private async lockEditableApplication(
+    tx: Prisma.TransactionClient,
+    id: string,
+    customerId: string,
+  ) {
     await tx.$queryRaw`SELECT id FROM loan_applications WHERE id = ${id}::uuid FOR UPDATE`;
 
     const application = await tx.loanApplication.findUnique({ where: { id } });
@@ -226,16 +235,20 @@ export class LoanApplicationsService {
     }
 
     if (application.customerId !== customerId) {
-      throw forbidden();
+      throw forbiddenException();
     }
 
     if (application.status !== "DRAFT") {
-      throw notEditable();
+      throw applicationNotEditableException();
     }
   }
 
-  private validateTerms(product: ApplicationProduct, amount: number, term: number): void {
-    if (amount < product.minAmount || amount > product.maxAmount) {
+  private validateRequestedTerms(
+    product: LoanProductTerms,
+    requestedAmount: number,
+    termMonths: number,
+  ): void {
+    if (requestedAmount < product.minAmount || requestedAmount > product.maxAmount) {
       throw new AppException(
         400,
         "AMOUNT_OUT_OF_RANGE",
@@ -243,7 +256,7 @@ export class LoanApplicationsService {
       );
     }
 
-    if (!product.allowedTerms.includes(term)) {
+    if (!product.allowedTerms.includes(termMonths)) {
       throw new AppException(
         400,
         "TERM_NOT_ALLOWED",
@@ -252,7 +265,7 @@ export class LoanApplicationsService {
     }
   }
 
-  private patchData(dto: UpdateApplicationDto): Prisma.LoanApplicationUpdateInput {
+  private buildUpdateData(dto: UpdateApplicationDto): Prisma.LoanApplicationUpdateInput {
     const {
       contacts: _contacts,
       applicantInfo,
