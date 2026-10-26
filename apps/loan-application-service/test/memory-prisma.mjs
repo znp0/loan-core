@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-// Repository double for HTTP behavior. It serializes transactions but does not
-// establish PostgreSQL's locking/index guarantees; use TEST_DATABASE_URL for that.
+// Repository double for HTTP behavior. It serializes transactions but does not establish PostgreSQL's locking/index guarantees; use TEST_DATABASE_URL for that.
 export function memoryPrisma() {
   let applications = [];
   let documents = [];
@@ -22,11 +21,13 @@ export function memoryPrisma() {
     async $transaction(work) {
       const previous = queue;
       let release;
+
       queue = new Promise((resolve) => {
         release = resolve;
       });
       await previous;
       const snapshot = structuredClone({ applications, documents, contacts });
+
       try {
         return await work(prisma);
       } catch (error) {
@@ -39,6 +40,7 @@ export function memoryPrisma() {
     loanApplication: {
       async findUnique({ where, include }) {
         const row = applications.find((value) => value.id === where.id) ?? null;
+
         return include ? included(row) : row && { ...row };
       },
       async findFirst({ where }) {
@@ -78,15 +80,22 @@ export function memoryPrisma() {
           updatedAt: new Date(),
           ...data,
         };
+
         applications.push(row);
+
         return include ? included(row) : { ...row };
       },
       async update({ where, data, include }) {
         const row = applications.find((value) => value.id === where.id);
-        for (const [key, value] of Object.entries(data))
-          if (value !== undefined && key !== "contacts") row[key] = value;
+
+        for (const [key, value] of Object.entries(data)) {
+          if (value !== undefined && key !== "contacts") {
+            row[key] = value;
+          }
+        }
         row.updatedAt = new Date();
-        if (data.contacts)
+
+        if (data.contacts) {
           contacts.push(
             ...data.contacts.create.map((contact) => ({
               ...contact,
@@ -94,6 +103,8 @@ export function memoryPrisma() {
               applicationId: row.id,
             })),
           );
+        }
+
         return include ? included(row) : { ...row };
       },
     },
@@ -110,20 +121,25 @@ export function memoryPrisma() {
         return documents.filter((row) => row.applicationId === where.applicationId);
       },
       async updateMany({ where, data }) {
-        for (const row of documents)
+        for (const row of documents) {
           if (
             row.applicationId === where.applicationId &&
             row.type === where.type &&
             row.isCurrent === where.isCurrent
-          )
+          ) {
             Object.assign(row, data);
+          }
+        }
       },
       async create({ data }) {
         const row = { id: randomUUID(), uploadedAt: new Date(), isCurrent: true, ...data };
+
         documents.push(row);
+
         return { ...row };
       },
     },
   };
+
   return prisma;
 }

@@ -23,6 +23,7 @@ export function documentResponse(document: ApplicationDocument) {
 export function applicationResponse(application: ApplicationRecord) {
   const date = (value: Date | null) => value?.toISOString().slice(0, 10) ?? null;
   const money = (value: bigint | null) => (value === null ? null : Number(value));
+
   return {
     id: application.id,
     applicationNumber: application.applicationNumber,

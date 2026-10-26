@@ -24,4 +24,13 @@ export const baseConfig = [
     },
   },
   prettier,
+  {
+    rules: {
+      curly: ["error", "all"],
+      "no-nested-ternary": "error",
+      "no-return-assign": ["error", "always"],
+      "no-cond-assign": ["error", "always"],
+      "no-sequences": ["error", { allowInParentheses: false }],
+    },
+  },
 ];

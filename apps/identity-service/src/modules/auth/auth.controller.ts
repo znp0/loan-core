@@ -8,11 +8,11 @@ import { AuthService } from "./auth.service";
 @Controller("auth")
 @UsePipes(new RequestValidationPipe())
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post("register")
   async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) response: Response) {
-    const tokens = await this.auth.register(registerDto);
+    const tokens = await this.authService.register(registerDto);
 
     this.setCookies(response, tokens);
 
@@ -22,7 +22,7 @@ export class AuthController {
   @Post("login")
   @HttpCode(200)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
-    const tokens = await this.auth.login(loginDto);
+    const tokens = await this.authService.login(loginDto);
 
     this.setCookies(response, tokens);
 

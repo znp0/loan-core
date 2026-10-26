@@ -10,7 +10,10 @@ export class ApplicationEligibilityPolicy {
       where: { customerId, status: { in: ["DRAFT", "SUBMITTED", "APPROVED"] } },
       select: { id: true },
     });
-    if (existing) throw activeApplicationExists();
+
+    if (existing) {
+      throw activeApplicationExists();
+    }
   }
 }
 

@@ -15,8 +15,11 @@ import { ProductClient } from "./product.client";
     JwtModule.registerAsync({
       useFactory: () => {
         const secret = process.env.JWT_SECRET;
-        if (!secret || Buffer.byteLength(secret) < 32)
+
+        if (!secret || Buffer.byteLength(secret) < 32) {
           throw new Error("JWT_SECRET must match identity-service and contain at least 32 bytes");
+        }
+
         return { secret };
       },
     }),

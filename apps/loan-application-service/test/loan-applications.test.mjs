@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -22,10 +22,13 @@ import { memoryPrisma } from "./memory-prisma.mjs";
 
 async function availablePort() {
   const server = createServer();
+
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const { port } = server.address();
+
   await new Promise((resolve) => server.close(resolve));
+
   return port;
 }
 
@@ -75,6 +78,7 @@ const updateInput = (extra = {}) => ({
 
 test("loan application HTTP contract", async (t) => {
   const databaseUrl = process.env.TEST_DATABASE_URL;
+
   if (
     databaseUrl &&
     process.env.CI !== "true" &&
@@ -88,13 +92,16 @@ test("loan application HTTP contract", async (t) => {
     ? new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) })
     : memoryPrisma();
   const storageRoot = await mkdtemp(join(tmpdir(), "loan-applications-test-"));
-  process.env.JWT_SECRET = "application-test-secret-at-least-32-bytes";
+
+  process.env.JWT_SECRET = randomBytes(32).toString("hex");
   process.env.APPLICATION_SERVICE_TOKEN = "synthetic-service-token";
   process.env.DOCUMENT_STORAGE_PATH = storageRoot;
   let productServer;
   let productExited;
+
   if (!process.env.PRODUCT_SIMULATION_URL) {
     const port = await availablePort();
+
     productServer = spawn(process.execPath, ["test/fixtures/loan-product.cjs"], {
       cwd: new URL("..", import.meta.url),
       env: { ...process.env, PORT: String(port) },
@@ -103,67 +110,97 @@ test("loan application HTTP contract", async (t) => {
     productExited = once(productServer, "exit");
     process.env.LOAN_PRODUCT_SERVICE_URL = `http://127.0.0.1:${port}`;
     let ready = false;
+
     for (let attempt = 0; attempt < 50; attempt++) {
       try {
-        ready = (
-          await fetch(
-            `${process.env.LOAN_PRODUCT_SERVICE_URL}/api/v1/internal/loan-products/${productId()}`,
-          )
-        ).ok;
-        if (ready) break;
+        const response = await fetch(
+          `${process.env.LOAN_PRODUCT_SERVICE_URL}/api/v1/internal/loan-products/${productId()}`,
+        );
+
+        ready = response.ok;
+
+        if (ready) {
+          break;
+        }
       } catch {
         /* wait for fixture */
       }
       await setTimeout(50);
     }
     assert.ok(ready, "Product fixture did not start");
-  } else process.env.LOAN_PRODUCT_SERVICE_URL = process.env.PRODUCT_SIMULATION_URL;
+  } else {
+    process.env.LOAN_PRODUCT_SERVICE_URL = process.env.PRODUCT_SIMULATION_URL;
+  }
 
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(PrismaService)
     .useValue(prisma)
     .compile();
   const app = module.createNestApplication({ logger: false });
+
   app.setGlobalPrefix("api/v1");
   await app.listen(0, "127.0.0.1");
   const base = `${await app.getUrl()}/api/v1/loan-applications`;
   const jwt = new JwtService({ secret: process.env.JWT_SECRET });
   const customerIds = [];
+
   function cookie(id = randomUUID(), claims = {}) {
     customerIds.push(id);
-    return `access_token=${jwt.sign({ sub: id, role: "CUSTOMER", tokenType: "access", ...claims }, { ...(claims.exp === undefined ? { expiresIn: "15m" } : {}), algorithm: "HS256" })}`;
+
+    const payload = { sub: id, role: "CUSTOMER", tokenType: "access", ...claims };
+    const options = {
+      ...(claims.exp === undefined ? { expiresIn: "15m" } : {}),
+      algorithm: "HS256",
+    };
+    const token = jwt.sign(payload, options);
+
+    return `access_token=${token}`;
   }
+
   async function request(method, path = "", body, auth) {
+    let requestBody = body;
+
+    if (body !== undefined && !(body instanceof FormData)) {
+      requestBody = JSON.stringify(body);
+    }
+
     return fetch(`${base}${path}`, {
       method,
       headers: {
         ...(auth ? { cookie: auth } : {}),
         ...(body instanceof FormData ? {} : { "content-type": "application/json" }),
       },
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+      body: requestBody,
     });
   }
   async function create(extra = {}) {
     const auth = cookie();
     const response = await request("POST", "", input(extra), auth);
+
     assert.equal(response.status, 201, JSON.stringify(await response.clone().json()));
+
     return { auth, application: await response.json() };
   }
   async function expectCode(response, status, code) {
     assert.equal(response.status, status, JSON.stringify(await response.clone().json()));
     const body = await response.json();
+
     assert.equal(body.code, code);
     assert.ok(Array.isArray(body.details));
   }
   function multipart(type = "ID_FRONT", mime = "image/png", size = 8) {
     const body = new FormData();
+
     body.set("type", type);
     body.set("file", new Blob([new Uint8Array(size)], { type: mime }), "identity.png");
+
     return body;
   }
+
   try {
     await t.test("creates an incomplete DRAFT with the exact public shape", async () => {
       const { application } = await create();
+
       assert.equal(application.status, "DRAFT");
       assert.equal(application.requestedAmount, 2000000);
       assert.equal(application.applicantInfo.fullName, null);
@@ -226,8 +263,9 @@ test("loan application HTTP contract", async (t) => {
         [{ termMonths: 7 }, 400, "TERM_NOT_ALLOWED"],
         [{ requestedAmount: 2.5 }, 400, "VALIDATION_ERROR"],
         [{ termMonths: null }, 400, "VALIDATION_ERROR"],
-      ])
+      ]) {
         await expectCode(await request("POST", "", input(extra), cookie()), status, code);
+      }
     });
     await t.test("serializes concurrent creations for one customer", async () => {
       const auth = cookie();
@@ -235,6 +273,7 @@ test("loan application HTTP contract", async (t) => {
         request("POST", "", input(), auth),
         request("POST", "", input(), auth),
       ]);
+
       assert.deepEqual(results.map((result) => result.status).sort(), [201, 409]);
       await expectCode(
         results.find((result) => result.status === 409),
@@ -244,6 +283,7 @@ test("loan application HTTP contract", async (t) => {
     });
     await t.test("enforces ownership, UUIDs, existence and DRAFT state", async () => {
       const { auth, application } = await create();
+
       await expectCode(
         await request("PATCH", `/${application.id}`, updateInput(), cookie()),
         403,
@@ -280,8 +320,10 @@ test("loan application HTTP contract", async (t) => {
         const { auth, application } = await create();
         const path = `/${application.id}`;
         let response = await request("PATCH", path, updateInput(), auth);
+
         assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
         let updated = await response.json();
+
         assert.deepEqual(updated.applicantInfo, updateInput().applicantInfo);
         assert.deepEqual(updated.currentAddress, updateInput().currentAddress);
         assert.deepEqual(updated.employmentInfo, updateInput().employmentInfo);
@@ -323,16 +365,23 @@ test("loan application HTTP contract", async (t) => {
         ]) {
           await expectCode(await request("PATCH", path, body, auth), 400, "VALIDATION_ERROR");
         }
+
         // Verify omitted root fields, plus omitted and null nested values.
         for (const field of Object.keys(updateInput())) {
           const omitted = updateInput();
+
           delete omitted[field];
           await expectCode(await request("PATCH", path, omitted, auth), 400, "VALIDATION_ERROR");
         }
+
         for (const [group, values] of Object.entries(updateInput())) {
-          if (typeof values !== "object" || Array.isArray(values)) continue;
+          if (typeof values !== "object" || Array.isArray(values)) {
+            continue;
+          }
+
           for (const field of Object.keys(values)) {
             const omitted = { ...values };
+
             delete omitted[field];
             await expectCode(
               await request("PATCH", path, updateInput({ [group]: omitted }), auth),
@@ -368,6 +417,7 @@ test("loan application HTTP contract", async (t) => {
       async () => {
         const { auth, application } = await create();
         const path = `/${application.id}`;
+
         for (const list of [[], [contacts()[0]], [contacts()[0], contacts()[0]]]) {
           await expectCode(
             await request("PATCH", path, updateInput({ contacts: list }), auth),
@@ -382,16 +432,19 @@ test("loan application HTTP contract", async (t) => {
           updateInput({ contacts: contacts("2") }),
           auth,
         );
+
         assert.equal(replaced.status, 200);
         assert.deepEqual((await replaced.json()).contacts, contacts("2"));
 
         const omitted = updateInput({ purpose: "Updated purpose" });
+
         delete omitted.contacts;
         await expectCode(await request("PATCH", path, omitted, auth), 400, "VALIDATION_ERROR");
         const unchanged = await prisma.loanApplication.findUnique({
           where: { id: application.id },
           include: { contacts: { orderBy: { position: "asc" } } },
         });
+
         assert.deepEqual(
           unchanged.contacts.map(({ fullName, relationship, phone }) => ({
             fullName,
@@ -405,6 +458,7 @@ test("loan application HTTP contract", async (t) => {
     await t.test("validates upload type, MIME, size, file presence and ownership", async () => {
       const { auth, application } = await create({ productId: productId(4) });
       const path = `/${application.id}/documents`;
+
       await expectCode(await request("POST", path, multipart(), undefined), 401, "UNAUTHORIZED");
       await expectCode(await request("POST", path, multipart(), cookie()), 403, "FORBIDDEN");
       await expectCode(
@@ -428,6 +482,7 @@ test("loan application HTTP contract", async (t) => {
         "FILE_TOO_LARGE",
       );
       const missing = new FormData();
+
       missing.set("type", "ID_FRONT");
       await expectCode(await request("POST", path, missing, auth), 400, "VALIDATION_ERROR");
     });
@@ -437,23 +492,30 @@ test("loan application HTTP contract", async (t) => {
         const { auth, application } = await create();
         const path = `/${application.id}/documents`;
         const first = await request("POST", path, multipart(), auth);
+
         assert.equal(first.status, 201, JSON.stringify(await first.clone().json()));
         const firstBody = await first.json();
+
         assert.deepEqual(
           Object.keys(firstBody).sort(),
           ["id", "type", "fileName", "contentType", "size", "uploadedAt"].sort(),
         );
         const second = await request("POST", path, multipart("ID_FRONT", "application/pdf"), auth);
+
         assert.equal(second.status, 201);
         assert.notEqual((await second.json()).id, firstBody.id);
         const concurrent = await Promise.all([
           request("POST", path, multipart(), auth),
           request("POST", path, multipart(), auth),
         ]);
-        for (const response of concurrent) assert.equal(response.status, 201);
+
+        for (const response of concurrent) {
+          assert.equal(response.status, 201);
+        }
         const history = await prisma.applicationDocument.findMany({
           where: { applicationId: application.id },
         });
+
         assert.equal(history.length, 4);
         assert.equal(history.filter((document) => document.isCurrent).length, 1);
         assert.equal(history.find((document) => document.id === firstBody.id).isCurrent, false);
@@ -464,6 +526,7 @@ test("loan application HTTP contract", async (t) => {
           updateInput({ purpose: "Review current document" }),
           auth,
         );
+
         assert.equal(current.status, 200);
         assert.equal((await current.json()).documents.length, 1);
       },
@@ -474,11 +537,14 @@ test("loan application HTTP contract", async (t) => {
       async () => {
         const { auth, application } = await create();
         const path = `/${application.id}/documents`;
+
         assert.equal((await request("POST", path, multipart(), auth)).status, 201);
         const originalCreate = prisma.applicationDocument.create;
+
         prisma.applicationDocument.create = async () => {
           throw new Error("Injected private database failure");
         };
+
         try {
           await expectCode(
             await request("POST", path, multipart(), auth),
@@ -490,6 +556,7 @@ test("loan application HTTP contract", async (t) => {
           const history = await prisma.applicationDocument.findMany({
             where: { applicationId: application.id },
           });
+
           assert.equal(history.length, 1);
           assert.equal(history[0].isCurrent, true);
         } finally {
@@ -497,10 +564,12 @@ test("loan application HTTP contract", async (t) => {
         }
 
         const originalTransaction = prisma.$transaction;
+
         prisma.$transaction = async (work) => {
           await originalTransaction(work);
           throw new Error("Injected lost commit acknowledgement");
         };
+
         try {
           await expectCode(
             await request("POST", path, multipart(), auth),
@@ -511,6 +580,7 @@ test("loan application HTTP contract", async (t) => {
           const history = await prisma.applicationDocument.findMany({
             where: { applicationId: application.id },
           });
+
           assert.equal(history.length, 2);
           assert.equal(history.filter((document) => document.isCurrent).length, 1);
         } finally {
@@ -523,6 +593,7 @@ test("loan application HTTP contract", async (t) => {
       { skip: !databaseUrl },
       async () => {
         const { application } = await create();
+
         await assert.rejects(
           prisma.loanApplication.create({
             data: {
@@ -544,6 +615,7 @@ test("loan application HTTP contract", async (t) => {
           size: 8,
           storageKey: randomUUID(),
         };
+
         await prisma.applicationDocument.create({ data });
         await assert.rejects(
           prisma.applicationDocument.create({ data: { ...data, storageKey: randomUUID() } }),
@@ -553,13 +625,16 @@ test("loan application HTTP contract", async (t) => {
     );
   } finally {
     await app.close();
+
     if (databaseUrl) {
       const where = { application: { customerId: { in: customerIds } } };
+
       await prisma.applicationDocument.deleteMany({ where });
       await prisma.applicationContact.deleteMany({ where });
       await prisma.loanApplication.deleteMany({ where: { customerId: { in: customerIds } } });
       await prisma.$disconnect();
     }
+
     if (productServer) {
       productServer.kill();
       await productExited;

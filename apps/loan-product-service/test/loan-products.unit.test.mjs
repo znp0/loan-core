@@ -26,10 +26,12 @@ const product = {
 
 test("internal product reads require the configured service credential and expose inactive terms", async () => {
   const originalToken = process.env.APPLICATION_SERVICE_TOKEN;
+
   process.env.APPLICATION_SERVICE_TOKEN = "test-internal-service-token";
   const inactive = { ...product, status: "INACTIVE" };
   const prisma = { loanProduct: { findUnique: async () => inactive } };
   const controller = new InternalLoanProductsController(new LoanProductsService(prisma));
+
   try {
     for (const token of [undefined, "wrong", "x".repeat(27)]) {
       assert.throws(
@@ -47,8 +49,11 @@ test("internal product reads require the configured service credential and expos
       (error) => error.getStatus() === 403,
     );
   } finally {
-    if (originalToken === undefined) delete process.env.APPLICATION_SERVICE_TOKEN;
-    else process.env.APPLICATION_SERVICE_TOKEN = originalToken;
+    if (originalToken === undefined) {
+      delete process.env.APPLICATION_SERVICE_TOKEN;
+    } else {
+      process.env.APPLICATION_SERVICE_TOKEN = originalToken;
+    }
   }
 });
 
@@ -76,6 +81,7 @@ test("list maps database values into the public JSON shape", async () => {
 
 test("an inactive or missing product is not returned", async () => {
   const prisma = { loanProduct: { findFirst: async () => null } };
+
   await assert.rejects(new LoanProductsService(prisma).get(product.id), (error) => {
     assert.equal(error.getStatus(), 404);
     assert.deepEqual(error.getResponse(), {
@@ -83,6 +89,7 @@ test("an inactive or missing product is not returned", async () => {
       message: "The requested loan product was not found.",
       details: [],
     });
+
     return true;
   });
 });
@@ -95,6 +102,7 @@ test("filter hides unexpected details and normalizes Nest errors", () => {
       getResponse: () => ({
         status(value) {
           status = value;
+
           return this;
         },
         json(value) {
