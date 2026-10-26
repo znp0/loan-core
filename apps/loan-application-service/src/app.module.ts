@@ -9,6 +9,7 @@ import { IdentityVerificationModule } from "./modules/identity-verification/iden
 import { LoanApplicationsModule } from "./modules/loan-applications/loan-applications.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ValidationModule } from "./modules/validation/validation.module";
+import { SubmissionModule } from "./modules/submission/submission.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ValidationModule } from "./modules/validation/validation.module";
     IdentityVerificationModule,
     DisbursementAccountVerificationModule,
     ValidationModule,
+    SubmissionModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],

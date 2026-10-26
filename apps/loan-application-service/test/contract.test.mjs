@@ -10,7 +10,11 @@ import { Test } from "@nestjs/testing";
 const require = createRequire(import.meta.url);
 const { AppModule } = require("../dist/app.module.js");
 const { PrismaService } = require("../dist/modules/prisma/prisma.service.js");
+const {
+  LoanApplicationsService,
+} = require("../dist/modules/loan-applications/loan-applications.service.js");
 const { buildContractSchedule } = require("../dist/modules/contract/contract-schedule.js");
+const { contractContentHash } = require("../dist/modules/submission/contract-content.js");
 const originalFetch = globalThis.fetch;
 const originalEnvironment = Object.fromEntries(
   [
@@ -68,6 +72,11 @@ const repository = {
       : [];
   },
   loanApplication: {
+    async update({ where, data }) {
+      const record = applications.get(where.id);
+      Object.assign(record, data);
+      return record;
+    },
     async findUnique({ where }) {
       return applications.get(where.id) ?? null;
     },
@@ -80,7 +89,22 @@ const repository = {
       ).length;
     },
   },
+  identityVerification: {
+    async updateMany({ where, data }) {
+      const record = applications.get(where.applicationId);
+      for (const verification of record?.identityVerifications ?? []) {
+        if (verification.invalidatedAt === null) {
+          Object.assign(verification, data);
+        }
+      }
+    },
+  },
   loanContract: {
+    async update({ where, data }) {
+      const record = contracts.find((item) => item.id === where.id);
+      Object.assign(record, data);
+      return record;
+    },
     async findFirst({ where }) {
       return (
         contracts
@@ -141,7 +165,7 @@ function application(overrides = {}) {
     otherMonthlyIncome: 0n,
     accountNumber: "0123456789",
     accountHolderName: "NGUYEN VAN A",
-    verificationStatus: "VERIFIED",
+    accountVerificationStatus: "VERIFIED",
     createdAt: new Date("2026-10-24T00:00:00.000Z"),
     updatedAt: new Date("2026-10-25T00:00:00.000Z"),
     contacts: [
@@ -375,4 +399,156 @@ test("serializes concurrent creation into consecutive versions", async () => {
 
   assert.deepEqual(responses.map((response) => response.status).sort(), [200, 201]);
   assert.deepEqual(bodies.map((body) => body.version).sort(), [1, 2]);
+});
+
+async function submit(
+  id,
+  { input = { contractVersion: 1, confirm: true }, cookie = token(), query = "" } = {},
+) {
+  return originalFetch(`${url}/loan-applications/${id}/submit${query}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { Cookie: `access_token=${cookie}` } : {}),
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+test("editing verified identity fields invalidates the attempt before a new preview", async () => {
+  const service = app.get(LoanApplicationsService);
+  for (const applicantInfo of [{ identityNumber: "999999999999" }, { dateOfBirth: "1991-01-31" }]) {
+    const record = application();
+    await service.update(customerId, record.id, { applicantInfo });
+    assert.ok(record.identityVerifications[0].invalidatedAt instanceof Date);
+    assert.equal(record.accountVerificationStatus, "VERIFIED");
+    assert.equal((await post(record.id)).status, 422);
+  }
+});
+
+test("editing the borrower name resets both identity and account verification", async () => {
+  const record = application();
+  const service = app.get(LoanApplicationsService);
+  await service.update(customerId, record.id, { applicantInfo: { fullName: "Other Borrower" } });
+  assert.ok(record.identityVerifications[0].invalidatedAt instanceof Date);
+  assert.equal(record.accountVerificationStatus, "UNVERIFIED");
+  assert.equal((await post(record.id)).status, 422);
+});
+
+test("submit signs the latest preview and GET returns the persisted signature", async () => {
+  const record = application();
+  await post(record.id);
+  const originalSchedule = structuredClone(contracts[0].schedulePreview);
+  const response = await submit(record.id);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.applicationStatus, "SUBMITTED");
+  assert.equal(body.contract.status, "CUSTOMER_SIGNED");
+  assert.equal(body.submittedAt, body.contract.signedAt);
+  assert.match(body.contract.contentHash, /^[0-9a-f]{64}$/);
+  assert.equal(record.status, "SUBMITTED");
+  assert.equal(record.submittedAt.toISOString(), body.submittedAt);
+  assert.deepEqual(contracts[0].schedulePreview, originalSchedule);
+  const fetched = await originalFetch(`${url}/loan-applications/${record.id}/contract`, {
+    headers: { Cookie: `access_token=${token()}` },
+  });
+  assert.equal(fetched.status, 200);
+  assert.equal((await fetched.json()).contentHash, body.contract.contentHash);
+  assert.equal((await submit(record.id)).status, 409);
+});
+
+test("submit rejects invalid bodies, roles, owners, missing records and versions without writes", async () => {
+  const record = application();
+  for (const input of [
+    null,
+    [],
+    {},
+    { contractVersion: "1", confirm: true },
+    { contractVersion: 0, confirm: true },
+    { contractVersion: 2147483648, confirm: true },
+    { contractVersion: 1.5, confirm: true },
+    { contractVersion: 1, confirm: false },
+    { contractVersion: 1, confirm: "true" },
+    { contractVersion: 1, confirm: true, extra: 1 },
+  ]) {
+    assert.equal((await submit(record.id, { input })).status, 400);
+  }
+  assert.equal((await submit(record.id, { cookie: null })).status, 401);
+  assert.equal((await submit(record.id, { cookie: "invalid" })).status, 401);
+  for (const role of ["STAFF", "ADMIN"]) {
+    assert.equal((await submit(record.id, { cookie: token({ role }) })).status, 403);
+  }
+  assert.equal((await submit(record.id, { cookie: token({ sub: randomUUID() }) })).status, 403);
+  assert.equal((await submit("invalid")).status, 400);
+  assert.equal((await submit(record.id, { query: "?extra=1" })).status, 400);
+  assert.equal((await (await submit(randomUUID())).json()).code, "APPLICATION_NOT_FOUND");
+  assert.equal((await (await submit(record.id)).json()).code, "CONTRACT_NOT_FOUND");
+  await post(record.id);
+  await post(record.id);
+  assert.equal((await (await submit(record.id)).json()).code, "CONTRACT_VERSION_MISMATCH");
+  assert.equal(record.status, "DRAFT");
+  assert.ok(contracts.every((item) => item.signedAt === null));
+});
+
+test("submit revalidates and rejects stale preview content", async () => {
+  const record = application();
+  await post(record.id);
+  productUnavailable = true;
+  assert.equal((await submit(record.id)).status, 503);
+  productUnavailable = false;
+  record.monthlyIncome = 0n;
+  assert.equal((await submit(record.id)).status, 422);
+  record.monthlyIncome = 10000000n;
+  record.purpose = "Changed purpose";
+  assert.equal((await (await submit(record.id)).json()).code, "CONTRACT_VERSION_MISMATCH");
+  record.purpose = "Home repair";
+  productTerms.annualInterestRate = "7.0000";
+  assert.equal((await submit(record.id)).status, 409);
+  assert.equal(record.status, "DRAFT");
+  assert.equal(contracts[0].signedAt, null);
+});
+
+test("submit accepts equivalent reordered snapshot collections", async () => {
+  const record = application();
+  await post(record.id);
+  record.contacts.reverse();
+  record.documents.reverse();
+  contracts[0].productSnapshot.requiredDocumentTypes.reverse();
+  assert.equal((await submit(record.id)).status, 200);
+});
+
+test("content hash covers business content and ignores object order and signing metadata", async () => {
+  const record = application();
+  await post(record.id);
+  const contract = contracts[0];
+  const hash = contractContentHash(contract);
+  const equivalent = structuredClone(contract);
+  equivalent.applicationSnapshot.contacts.reverse();
+  equivalent.applicationSnapshot.documents.reverse();
+  equivalent.productSnapshot.requiredDocumentTypes.reverse();
+  equivalent.productSnapshot = Object.fromEntries(
+    Object.entries(equivalent.productSnapshot).reverse(),
+  );
+  equivalent.status = "CUSTOMER_SIGNED";
+  equivalent.signedAt = new Date();
+  equivalent.updatedAt = new Date();
+  equivalent.contentHash = "ignored";
+  assert.equal(contractContentHash(equivalent), hash);
+  equivalent.applicationSnapshot.purpose = "Different purpose";
+  assert.notEqual(contractContentHash(equivalent), hash);
+  assert.notEqual(contractContentHash({ ...contract, totalPayable: 103n }), hash);
+  assert.notEqual(contractContentHash({ ...contract, version: 2 }), hash);
+});
+
+test("submit rejects changed documents and verification even when validation still passes", async () => {
+  const record = application();
+  await post(record.id);
+  const documentId = record.documents[0].id;
+  record.documents[0].id = randomUUID();
+  assert.equal((await submit(record.id)).status, 409);
+  record.documents[0].id = documentId;
+  record.identityVerifications[0].id = randomUUID();
+  assert.equal((await submit(record.id)).status, 409);
+  assert.equal(record.status, "DRAFT");
+  assert.equal(contracts[0].contentHash, null);
 });

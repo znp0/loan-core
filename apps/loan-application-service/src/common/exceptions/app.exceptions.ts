@@ -76,6 +76,36 @@ export class ContractNotFoundException extends AppException {
   }
 }
 
+export class ContractVersionMismatchException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.CONFLICT,
+      ErrorCodes.CONTRACT_VERSION_MISMATCH,
+      "The contract preview is outdated. Create and review a new preview before submission.",
+    );
+  }
+}
+
+export class SubmissionNotEditableException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.CONFLICT,
+      ErrorCodes.APPLICATION_NOT_EDITABLE,
+      "The loan application is not available for submission in its current status.",
+    );
+  }
+}
+
+export class SubmissionNotReadyException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      ErrorCodes.APPLICATION_NOT_READY,
+      "The loan application is not ready for submission.",
+    );
+  }
+}
+
 export class ApplicationNotEditableException extends AppException {
   constructor() {
     super(
