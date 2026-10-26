@@ -9,7 +9,7 @@ import {
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
 import { type LoanContract } from "../../generated/prisma/client";
-import type { AccessRole } from "../../common/guards/customer-access.guard";
+import type { AccessRole } from "../../common/guards/role.guard";
 import { PrismaService } from "../prisma/prisma.service";
 import { ValidationService } from "../validation/validation.service";
 import { buildContractSchedule } from "./contract-schedule";

@@ -11,11 +11,7 @@ import {
 } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import {
-  CustomerAccessGuard,
-  RequireRoles,
-  type CustomerRequest,
-} from "../../common/guards/customer-access.guard";
+import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
 import { ContractService } from "./contract.service";
 
 type ContractRequest = CustomerRequest & {
@@ -47,7 +43,8 @@ function requireEmptyRequest(request: ContractRequest): void {
 }
 
 @Controller("loan-applications/:applicationId/contract")
-@UseGuards(CustomerAccessGuard)
+@UseGuards(RoleGuard)
+@RequireRoles("CUSTOMER")
 export class ContractController {
   constructor(private readonly contractService: ContractService) {}
 

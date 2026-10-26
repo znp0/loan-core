@@ -10,16 +10,14 @@ import {
 } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import {
-  CustomerAccessGuard,
-  type CustomerRequest,
-} from "../../common/guards/customer-access.guard";
+import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
 import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { IdentityVerificationDto } from "./identity-verification.dto";
 import { IdentityVerificationService } from "./identity-verification.service";
 
 @Controller("loan-applications/:applicationId/identity-verifications")
-@UseGuards(CustomerAccessGuard)
+@UseGuards(RoleGuard)
+@RequireRoles("CUSTOMER")
 @UsePipes(new RequestValidationPipe())
 export class IdentityVerificationController {
   constructor(private readonly identityVerificationService: IdentityVerificationService) {}
