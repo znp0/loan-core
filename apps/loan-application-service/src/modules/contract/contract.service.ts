@@ -13,16 +13,13 @@ import type { AccessRole } from "../../common/guards/customer-access.guard";
 import { PrismaService } from "../prisma/prisma.service";
 import { ValidationService } from "../validation/validation.service";
 import { buildContractSchedule } from "./contract-schedule";
+import { buildContractSnapshots } from "./contract-snapshot";
 
 type LockedApplication = {
   id: string;
   customerId: string;
   status: string;
 };
-
-function date(value: Date | null): string | null {
-  return value?.toISOString().slice(0, 10) ?? null;
-}
 
 function decimalNumber(value: unknown): number {
   if (typeof value === "string") {
@@ -154,68 +151,7 @@ export class ContractService {
         const version = (latest?.version ?? 0) + 1;
         const contractNumber =
           latest?.contractNumber ?? `CONTRACT-${evaluation.application.applicationNumber}`;
-        const applicationSnapshot = {
-          id: evaluation.application.id,
-          applicationNumber: evaluation.application.applicationNumber,
-          customerId: evaluation.application.customerId,
-          productId: evaluation.application.productId,
-          requestedAmount: schedule.totalPrincipal,
-          termMonths: evaluation.application.termMonths,
-          purpose: evaluation.application.purpose,
-          applicantInfo: {
-            fullName: evaluation.application.fullName,
-            dateOfBirth: date(evaluation.application.dateOfBirth),
-            identityNumber: evaluation.application.identityNumber,
-            identityIssuedDate: date(evaluation.application.identityIssuedDate),
-            email: evaluation.application.email,
-            phone: evaluation.application.phone,
-          },
-          currentAddress: {
-            addressLine: evaluation.application.addressLine,
-            ward: evaluation.application.ward,
-            district: evaluation.application.district,
-            province: evaluation.application.province,
-          },
-          employmentInfo: {
-            employmentType: evaluation.application.employmentType,
-            employerName: evaluation.application.employerName,
-            jobTitle: evaluation.application.jobTitle,
-            employmentStartDate: date(evaluation.application.employmentStartDate),
-          },
-          financialInfo: {
-            monthlyIncome: evaluation.application.monthlyIncome?.toString() ?? null,
-            otherMonthlyIncome: evaluation.application.otherMonthlyIncome?.toString() ?? null,
-          },
-          contacts: evaluation.application.contacts.map((contact) => ({
-            fullName: contact.fullName,
-            relationship: contact.relationship,
-            phone: contact.phone,
-          })),
-          documents: evaluation.application.documents
-            .filter((document) => document.isCurrent)
-            .map((document) => ({
-              id: document.id,
-              type: document.type,
-              fileName: document.fileName,
-              contentType: document.contentType,
-              size: document.size,
-              uploadedAt: document.uploadedAt.toISOString(),
-            })),
-          identityVerification: evaluation.application.identityVerifications[0]
-            ? {
-                id: evaluation.application.identityVerifications[0].id,
-                status: evaluation.application.identityVerifications[0].status,
-                verifiedAt:
-                  evaluation.application.identityVerifications[0].verifiedAt.toISOString(),
-              }
-            : null,
-          disbursementAccount: {
-            accountNumber: evaluation.application.accountNumber,
-            accountHolderName: evaluation.application.accountHolderName,
-            verificationStatus: evaluation.application.verificationStatus,
-          },
-        };
-        const productSnapshot = { ...evaluation.product };
+        const { applicationSnapshot, productSnapshot } = buildContractSnapshots(evaluation);
         const contract = await transaction.loanContract.create({
           data: {
             applicationId,
