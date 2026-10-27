@@ -2,7 +2,9 @@ import "reflect-metadata";
 
 import assert from "node:assert/strict";
 import { createHmac, randomUUID } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
+import { json } from "node:stream/consumers";
 import { after, before, beforeEach, test } from "node:test";
 
 import { Test } from "@nestjs/testing";
@@ -377,19 +379,63 @@ test("allows the contract owner and staff to read while denying other customers"
   }
 });
 
-test("rejects query parameters, request bodies and malformed JSON", async () => {
+test("ignores query parameters and request bodies when generating contracts", async () => {
   const record = application();
 
-  assert.equal((await post(record.id, { suffix: "?refresh=true" })).status, 400);
-  assert.equal(
-    (
-      await post(record.id, {
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh: true }),
-      })
-    ).status,
-    400,
-  );
+  const cases = [
+    { input: {}, expectedStatus: 201 },
+    {
+      input: { principalAmount: 999, annualInterestRate: 0, termMonths: 99 },
+      expectedStatus: 200,
+    },
+  ];
+
+  for (const { input, expectedStatus } of cases) {
+    const response = await post(record.id, {
+      suffix: "?refresh=true&annualInterestRate=0",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+
+    assert.equal(response.status, expectedStatus);
+
+    const contract = await response.json();
+
+    assert.equal(contract.terms.principalAmount, Number(record.requestedAmount));
+    assert.equal(contract.terms.termMonths, record.termMonths);
+    assert.equal(contract.terms.annualInterestRate, Number(productTerms.annualInterestRate));
+  }
+});
+
+test("ignores query parameters and request bodies when reading contracts", async () => {
+  const record = application();
+  const createdResponse = await post(record.id);
+  const contract = await createdResponse.json();
+  const input = JSON.stringify({ principalAmount: 999, annualInterestRate: 0 });
+  const response = await new Promise((resolve, reject) => {
+    const request = httpRequest(
+      `${url}/loan-applications/${record.id}/contract?refresh=true`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `access_token=${token()}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(input),
+        },
+      },
+      resolve,
+    );
+
+    request.on("error", reject);
+    request.end(input);
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(await json(response), contract);
+});
+
+test("rejects malformed JSON when generating contracts", async () => {
+  const record = application();
   const malformed = await post(record.id, {
     headers: { "Content-Type": "application/json" },
     body: "{",
