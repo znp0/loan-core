@@ -16,7 +16,7 @@ import { ApplicationEligibilityPolicy } from "./application-eligibility.policy";
 import { applicationInclude, applicationResponse, documentResponse } from "./application.response";
 import { DocumentStorage } from "./document.storage";
 import { LoanProductClient, type LoanProductTerms } from "./loan-product.client";
-import { MAX_DOCUMENT_SIZE } from "./loan-applications.constants";
+import { MAX_DOCUMENT_SIZE, REQUIRED_CONTACT_COUNT } from "./loan-applications.constants";
 import {
   CreateApplicationDto,
   UpdateApplicationDto,
@@ -71,7 +71,8 @@ export class LoanApplicationsService {
 
     if (
       dto.contacts &&
-      new Set(dto.contacts.map((contact) => contact.phone.replace(/^\+/, ""))).size !== 2
+      new Set(dto.contacts.map((contact) => contact.phone.replace(/^\+/, ""))).size !==
+        REQUIRED_CONTACT_COUNT
     ) {
       throw new ValidationException([
         { field: "contacts", message: "Exactly two distinct contact phone numbers are required." },

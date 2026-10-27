@@ -17,10 +17,13 @@ import {
   ValidateNested,
 } from "class-validator";
 
+import { MAX_INT32 } from "../../common/constants/integer.constants";
+import { MAX_APPLICATION_TEXT_LENGTH, REQUIRED_CONTACT_COUNT } from "./loan-applications.constants";
+
 export class ApplicantInfoDto {
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   fullName?: string | null;
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
@@ -29,7 +32,7 @@ export class ApplicantInfoDto {
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   identityNumber?: string | null;
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
@@ -47,22 +50,22 @@ export class ApplicantInfoDto {
 export class CurrentAddressDto {
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   addressLine?: string | null;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   ward?: string | null;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   district?: string | null;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   province?: string | null;
 }
 
@@ -72,12 +75,12 @@ export class EmploymentInfoDto {
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   employerName?: string | null;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   jobTitle?: string | null;
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
@@ -100,24 +103,24 @@ export class FinancialInfoDto {
 export class DisbursementAccountDto {
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   accountNumber?: string | null;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   accountHolderName?: string | null;
 }
 
 export class ContactDto {
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   fullName!: string;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   relationship!: string;
 
   @Matches(/^\+?[0-9]{9,15}$/)
@@ -135,12 +138,12 @@ export class CreateApplicationDto {
 
   @IsInt()
   @Min(1)
-  @Max(2147483647)
+  @Max(MAX_INT32)
   termMonths!: number;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   purpose!: string;
 }
 
@@ -152,12 +155,12 @@ export class UpdateApplicationDto {
 
   @IsInt()
   @Min(1)
-  @Max(2147483647)
+  @Max(MAX_INT32)
   termMonths?: number;
 
   @IsString()
   @Matches(/\S/)
-  @MaxLength(1000)
+  @MaxLength(MAX_APPLICATION_TEXT_LENGTH)
   purpose?: string;
 
   @IsObject()
@@ -186,8 +189,8 @@ export class UpdateApplicationDto {
   disbursementAccount?: DisbursementAccountDto;
 
   @IsArray()
-  @ArrayMinSize(2)
-  @ArrayMaxSize(2)
+  @ArrayMinSize(REQUIRED_CONTACT_COUNT)
+  @ArrayMaxSize(REQUIRED_CONTACT_COUNT)
   @ValidateNested({ each: true })
   @Type(() => ContactDto)
   contacts?: ContactDto[];
