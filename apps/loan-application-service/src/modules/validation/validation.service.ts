@@ -7,6 +7,7 @@ import {
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
 import { IdentityVerificationStatus, VerificationStatus } from "../../generated/prisma/enums";
+import { REQUIRED_CONTACT_COUNT } from "../loan-applications/loan-applications.constants";
 import { PrismaService } from "../prisma/prisma.service";
 
 type ProductTerms = {
@@ -188,13 +189,14 @@ export class ValidationService {
 
     const contacts = application.contacts;
     const completeContacts =
-      contacts.length === 2 &&
+      contacts.length === REQUIRED_CONTACT_COUNT &&
       contacts.every(
         (contact) =>
           nonblank(contact.fullName) && nonblank(contact.relationship) && nonblank(contact.phone),
       );
     const distinctPhones =
-      contacts.length === 2 && contacts[0]?.phone.trim() !== contacts[1]?.phone.trim();
+      contacts.length === REQUIRED_CONTACT_COUNT &&
+      contacts[0]?.phone.trim() !== contacts[1]?.phone.trim();
     add(
       "CONTACTS",
       "contacts",

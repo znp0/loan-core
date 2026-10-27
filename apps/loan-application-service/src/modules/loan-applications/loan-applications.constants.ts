@@ -1,1 +1,3 @@
+export const MAX_APPLICATION_TEXT_LENGTH = 1_000;
+export const REQUIRED_CONTACT_COUNT = 2;
 export const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
