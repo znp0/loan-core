@@ -1,3 +1,4 @@
+// Scale percentage rates by 10,000 to preserve four decimal places in BigInt calculations.
 const RATE_SCALE = 10_000n;
 const MONTHLY_RATE_DENOMINATOR = 12n * 100n * RATE_SCALE;
 
@@ -29,7 +30,9 @@ function scaledRate(value: string): bigint {
   const match = /^(0|[1-9]\d*)(?:\.(\d{1,4}))?$/.exec(value);
 
   if (!match) {
-    throw new RangeError("Annual interest rate must be a non-negative decimal with scale 4.");
+    throw new RangeError(
+      "Annual interest rate must be a non-negative decimal with at most 4 decimal places.",
+    );
   }
 
   const whole = BigInt(match[1]!);
