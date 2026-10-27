@@ -1,10 +1,10 @@
 import { Controller, HttpCode, Param, ParseUUIDPipe, Post, Req, UseGuards } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RoleGuard, type CustomerRequest, RequireRoles } from "../../common/guards/role.guard";
+import { RoleGuard, type AuthenticatedRequest, RequireRoles } from "../../common/guards/role.guard";
 import { DisbursementAccountVerificationService } from "./disbursement-account-verification.service";
 
-type AccountRequest = CustomerRequest & {
+type AccountRequest = AuthenticatedRequest & {
   headers: { "content-length"?: string; "transfer-encoding"?: string };
   query: Record<string, unknown>;
   body: unknown;
@@ -51,6 +51,6 @@ export class DisbursementAccountVerificationController {
       throw new ValidationException([{ field: "body", message: "Request body must be empty." }]);
     }
 
-    return this.service.verify(applicationId, request.customerId!);
+    return this.service.verify(applicationId, request.user!.id);
   }
 }

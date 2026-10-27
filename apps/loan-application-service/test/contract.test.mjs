@@ -353,6 +353,30 @@ test("enforces authentication, ownership and UUID syntax", async () => {
   assert.equal((await post("not-a-uuid")).status, 400);
 });
 
+test("allows the contract owner and staff to read while denying other customers", async () => {
+  const record = application();
+  assert.equal((await post(record.id)).status, 201);
+
+  const identities = [
+    { sub: customerId, role: "CUSTOMER", expectedStatus: 200 },
+    { sub: randomUUID(), role: "STAFF", expectedStatus: 200 },
+    { sub: randomUUID(), role: "CUSTOMER", expectedStatus: 403 },
+  ];
+
+  for (const { sub, role, expectedStatus } of identities) {
+    const response = await originalFetch(`${url}/loan-applications/${record.id}/contract`, {
+      headers: { Cookie: `access_token=${token({ sub, role })}` },
+    });
+
+    assert.equal(response.status, expectedStatus);
+
+    if (expectedStatus === 200) {
+      const body = await response.json();
+      assert.equal(body.id, contracts[0].id);
+    }
+  }
+});
+
 test("rejects query parameters, request bodies and malformed JSON", async () => {
   const record = application();
 
