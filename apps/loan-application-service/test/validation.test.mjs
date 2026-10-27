@@ -2,7 +2,9 @@ import "reflect-metadata";
 
 import assert from "node:assert/strict";
 import { createHmac, randomUUID } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
+import { json } from "node:stream/consumers";
 import { after, before, beforeEach, test } from "node:test";
 
 import { Test } from "@nestjs/testing";
@@ -342,6 +344,49 @@ test("non-salaried applicants do not need employer details", async () => {
   assert.equal(result.checks.find((item) => item.code === "EMPLOYMENT").status, "PASSED");
 });
 
+test("validation ignores query parameters and checks saved application data", async () => {
+  const record = application({ monthlyIncome: 0n });
+  const response = await get(record.id, { suffix: "?valid=true&monthlyIncome=10000000" });
+
+  assert.equal(response.status, 200);
+
+  const result = await response.json();
+
+  assert.equal(result.valid, false);
+  assert.equal(result.checks.find((item) => item.code === "MONTHLY_INCOME").status, "FAILED");
+  assert.equal(record.monthlyIncome, 0n);
+});
+
+test("validation ignores request bodies and checks saved application data", async () => {
+  const record = application({ monthlyIncome: 0n });
+  const input = JSON.stringify({ valid: true, monthlyIncome: 10000000 });
+  const response = await new Promise((resolve, reject) => {
+    const request = httpRequest(
+      `${url}/loan-applications/${record.id}/validation`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `access_token=${token()}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(input),
+        },
+      },
+      resolve,
+    );
+
+    request.on("error", reject);
+    request.end(input);
+  });
+
+  assert.equal(response.statusCode, 200);
+
+  const result = await json(response);
+
+  assert.equal(result.valid, false);
+  assert.equal(result.checks.find((item) => item.code === "MONTHLY_INCOME").status, "FAILED");
+  assert.equal(record.monthlyIncome, 0n);
+});
+
 test("validation enforces authentication, ownership and UUID syntax", async () => {
   const record = application();
   assert.equal((await get(record.id, { cookie: null })).status, 401);
@@ -349,5 +394,4 @@ test("validation enforces authentication, ownership and UUID syntax", async () =
   assert.equal((await get(record.id, { cookie: token({ sub: randomUUID() }) })).status, 403);
   assert.equal((await get(randomUUID())).status, 404);
   assert.equal((await get("not-a-uuid")).status, 400);
-  assert.equal((await get(record.id, { suffix: "?status=PASSED" })).status, 400);
 });

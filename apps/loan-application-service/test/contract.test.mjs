@@ -527,6 +527,24 @@ test("submit signs the latest preview and GET returns the persisted signature", 
   assert.equal((await submit(record.id)).status, 409);
 });
 
+test("submit ignores query parameters and uses the confirmed contract version from the body", async () => {
+  const record = application();
+  await post(record.id);
+
+  const response = await submit(record.id, {
+    query: "?contractVersion=999&confirm=false&status=APPROVED",
+  });
+
+  assert.equal(response.status, 200);
+
+  const result = await response.json();
+
+  assert.equal(result.applicationStatus, "SUBMITTED");
+  assert.equal(result.contract.version, 1);
+  assert.equal(result.contract.status, "CUSTOMER_SIGNED");
+  assert.equal(record.status, "SUBMITTED");
+});
+
 test("submit rejects invalid bodies, roles, owners, missing records and versions without writes", async () => {
   const record = application();
   for (const input of [
@@ -550,7 +568,6 @@ test("submit rejects invalid bodies, roles, owners, missing records and versions
   }
   assert.equal((await submit(record.id, { cookie: token({ sub: randomUUID() }) })).status, 403);
   assert.equal((await submit("invalid")).status, 400);
-  assert.equal((await submit(record.id, { query: "?extra=1" })).status, 400);
   assert.equal((await (await submit(randomUUID())).json()).code, "APPLICATION_NOT_FOUND");
   assert.equal((await (await submit(record.id)).json()).code, "CONTRACT_NOT_FOUND");
   await post(record.id);

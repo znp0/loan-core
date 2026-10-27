@@ -37,14 +37,8 @@ export class SubmissionController {
     )
     applicationId: string,
     @Body() input: SubmissionDto,
-    @Req() request: AuthenticatedRequest & { query: Record<string, unknown> },
+    @Req() request: AuthenticatedRequest,
   ) {
-    if (Object.keys(request.query).length > 0) {
-      throw new ValidationException([
-        { field: "query", message: "Query parameters are not allowed." },
-      ]);
-    }
-
     return this.submissionService.submit(applicationId, request.user!.id, input.contractVersion);
   }
 }
