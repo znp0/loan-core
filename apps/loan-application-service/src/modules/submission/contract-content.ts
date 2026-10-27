@@ -17,11 +17,12 @@ function normalize(value: unknown, field = ""): unknown {
     const items = value.map((item) => normalize(item));
 
     if (field === "contacts" || field === "documents") {
-      items.sort((left, right) => {
-        const a = left as Record<string, string>;
-        const b = right as Record<string, string>;
+      const records = items as Record<string, string>[];
+
+      records.sort((a, b) => {
         const aKey = field === "contacts" ? a.phone! : `${a.type}:${a.id}`;
         const bKey = field === "contacts" ? b.phone! : `${b.type}:${b.id}`;
+
         return compareText(aKey, bKey);
       });
     } else if (field === "allowedTerms") {
