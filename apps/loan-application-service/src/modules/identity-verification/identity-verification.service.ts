@@ -7,6 +7,7 @@ import {
   ApplicationNotFoundException,
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
+import { IdentityVerificationStatus } from "../../generated/prisma/enums";
 import { PrismaService } from "../prisma/prisma.service";
 import { IdentityVerificationDto } from "./identity-verification.dto";
 
@@ -59,7 +60,10 @@ export class IdentityVerificationService {
         if (date(application.dateOfBirth) !== input.dateOfBirth) {
           mismatchedFields.push("dateOfBirth");
         }
-        const status = mismatchedFields.length === 0 ? "PASSED" : "FAILED";
+        const status =
+          mismatchedFields.length === 0
+            ? IdentityVerificationStatus.PASSED
+            : IdentityVerificationStatus.FAILED;
         const record = await transaction.identityVerification.create({
           data: {
             id: randomUUID(),
