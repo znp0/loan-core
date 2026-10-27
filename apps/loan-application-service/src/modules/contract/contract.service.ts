@@ -75,7 +75,7 @@ export class ContractService {
     private readonly validationService: ValidationService,
   ) {}
 
-  async get(applicationId: string, customerId: string, role: AccessRole) {
+  async get(applicationId: string, userId: string, role: AccessRole) {
     const application = await this.prisma.loanApplication.findUnique({
       where: { id: applicationId },
       select: { customerId: true },
@@ -84,7 +84,7 @@ export class ContractService {
     if (!application) {
       throw new ApplicationNotFoundException();
     }
-    if (role === "CUSTOMER" && application.customerId !== customerId) {
+    if (role === "CUSTOMER" && application.customerId !== userId) {
       throw new ForbiddenException();
     }
 

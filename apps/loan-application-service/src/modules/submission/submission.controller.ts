@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
+import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
 import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { SubmissionDto } from "./submission.dto";
 import { SubmissionService } from "./submission.service";
@@ -37,7 +37,7 @@ export class SubmissionController {
     )
     applicationId: string,
     @Body() input: SubmissionDto,
-    @Req() request: CustomerRequest & { query: Record<string, unknown> },
+    @Req() request: AuthenticatedRequest & { query: Record<string, unknown> },
   ) {
     if (Object.keys(request.query).length > 0) {
       throw new ValidationException([
@@ -45,6 +45,6 @@ export class SubmissionController {
       ]);
     }
 
-    return this.submissionService.submit(applicationId, request.customerId!, input.contractVersion);
+    return this.submissionService.submit(applicationId, request.user!.id, input.contractVersion);
   }
 }

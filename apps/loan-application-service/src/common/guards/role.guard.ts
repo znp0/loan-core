@@ -5,13 +5,17 @@ import { Reflector } from "@nestjs/core";
 
 import { ForbiddenException, UnauthorizedException } from "../exceptions/app.exceptions";
 
-export type CustomerRequest = {
-  headers: { cookie?: string };
-  customerId?: string;
-  role?: AccessRole;
+export type AccessRole = "CUSTOMER" | "STAFF";
+
+export type AuthenticatedUser = {
+  id: string;
+  role: AccessRole;
 };
 
-export type AccessRole = "CUSTOMER" | "STAFF";
+export type AuthenticatedRequest = {
+  headers: { cookie?: string };
+  user?: AuthenticatedUser;
+};
 
 const ACCESS_ROLES = "access-roles";
 
@@ -25,7 +29,7 @@ export class RoleGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<CustomerRequest>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const cookies = (request.headers.cookie ?? "")
       .split(";")
       .map((part) => part.trim())
@@ -70,8 +74,11 @@ export class RoleGuard implements CanActivate {
       throw new ForbiddenException();
     }
 
-    request.customerId = claims.sub;
-    request.role = claims.role as AccessRole;
+    request.user = {
+      id: claims.sub,
+      role: claims.role as AccessRole,
+    };
+
     return true;
   }
 }

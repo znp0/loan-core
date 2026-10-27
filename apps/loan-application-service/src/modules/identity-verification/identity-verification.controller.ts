@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
+import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
 import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { IdentityVerificationDto } from "./identity-verification.dto";
 import { IdentityVerificationService } from "./identity-verification.service";
@@ -35,8 +35,8 @@ export class IdentityVerificationController {
     )
     applicationId: string,
     @Body() input: IdentityVerificationDto,
-    @Req() request: CustomerRequest,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.identityVerificationService.verify(applicationId, request.customerId!, input);
+    return this.identityVerificationService.verify(applicationId, request.user!.id, input);
   }
 }

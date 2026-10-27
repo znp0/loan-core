@@ -11,11 +11,11 @@ import {
 } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard, type CustomerRequest } from "../../common/guards/role.guard";
+import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
 import { ContractService } from "./contract.service";
 
-type ContractRequest = CustomerRequest & {
-  headers: CustomerRequest["headers"] & {
+type ContractRequest = AuthenticatedRequest & {
+  headers: AuthenticatedRequest["headers"] & {
     "content-length"?: string;
     "transfer-encoding"?: string;
   };
@@ -65,7 +65,7 @@ export class ContractController {
   ) {
     requireEmptyRequest(request);
 
-    return this.contractService.get(applicationId, request.customerId!, request.role!);
+    return this.contractService.get(applicationId, request.user!.id, request.user!.role);
   }
 
   @Post()
@@ -85,7 +85,7 @@ export class ContractController {
   ) {
     requireEmptyRequest(request);
 
-    const result = await this.contractService.create(applicationId, request.customerId!);
+    const result = await this.contractService.create(applicationId, request.user!.id);
     response.status(result.created ? HttpStatus.CREATED : HttpStatus.OK);
 
     return result.contract;
