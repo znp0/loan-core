@@ -52,6 +52,7 @@ export class DisbursementAccountVerificationService {
           throw new AccountInformationIncompleteException();
         }
 
+        // Simulated verification: only checks account format and the saved applicant name. Real verification requires confirming account existence and ownership with a bank or account verification provider.
         const mismatchedFields: string[] = [];
         if (!/^\d{6,20}$/.test(accountNumber)) {
           mismatchedFields.push("accountNumber");

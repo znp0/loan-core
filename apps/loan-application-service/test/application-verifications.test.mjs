@@ -317,20 +317,63 @@ test("missing account fields return 422 without changing prior status", async ()
   }
 });
 
-test("account verification rejects unexpected input before updating status", async () => {
-  const record = application();
-  for (const options of [{ query: "?status=VERIFIED" }, { body: { status: "VERIFIED" } }]) {
-    await assertError(await verifyAccount(record.id, options), 400, "VALIDATION_ERROR");
+test("account verification ignores query parameters and bodies and verifies saved details", async () => {
+  const record = application({ accountHolderName: "OTHER PERSON" });
+  const options = [
+    { query: "?status=VERIFIED" },
+    { body: {} },
+    {
+      query: "?status=VERIFIED",
+      body: { status: "VERIFIED", accountNumber: "9999999999", accountHolderName: "NGUYEN VAN A" },
+    },
+  ];
+
+  for (const input of options) {
+    const response = await verifyAccount(record.id, input);
+
+    assert.equal(response.status, 200);
+
+    const result = await response.json();
+
+    assert.equal(result.status, "FAILED");
+    assert.equal(result.accountHolderName, "OTHER PERSON");
+    assert.equal(result.maskedAccountNumber, "******6789");
+    assert.deepEqual(result.mismatchedFields, ["accountHolderName"]);
+    assert.equal(record.accountVerificationStatus, "FAILED");
+    assert.equal(record.accountNumber, "0123456789");
+    assert.equal(record.accountHolderName, "OTHER PERSON");
   }
+});
+
+test("account verification ignores unused text bodies", async () => {
+  const record = application();
   const textResponse = await fetch(
     `${url}/loan-applications/${record.id}/disbursement-account/verify`,
     {
       method: "POST",
       headers: { "Content-Type": "text/plain", Cookie: `access_token=${token()}` },
       body: "unexpected request body",
+      signal: AbortSignal.timeout(10000),
     },
   );
-  await assertError(textResponse, 400, "VALIDATION_ERROR");
+  assert.equal(textResponse.status, 200);
+  assert.equal((await textResponse.json()).status, "VERIFIED");
+  assert.equal(record.accountVerificationStatus, "VERIFIED");
+});
+
+test("account verification rejects malformed JSON and invalid UUIDs before updating status", async () => {
+  const record = application();
+  const response = await fetch(
+    `${url}/loan-applications/${record.id}/disbursement-account/verify`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `access_token=${token()}` },
+      body: "{",
+      signal: AbortSignal.timeout(10000),
+    },
+  );
+
+  await assertError(response, 400, "VALIDATION_ERROR");
   await assertError(await verifyAccount("not-a-uuid"), 400, "VALIDATION_ERROR");
   assert.equal(record.accountVerificationStatus, "UNVERIFIED");
 });

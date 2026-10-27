@@ -4,12 +4,6 @@ import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { RoleGuard, type AuthenticatedRequest, RequireRoles } from "../../common/guards/role.guard";
 import { DisbursementAccountVerificationService } from "./disbursement-account-verification.service";
 
-type AccountRequest = AuthenticatedRequest & {
-  headers: { "content-length"?: string; "transfer-encoding"?: string };
-  query: Record<string, unknown>;
-  body: unknown;
-};
-
 @Controller("loan-applications/:applicationId/disbursement-account")
 @UseGuards(RoleGuard)
 @RequireRoles("CUSTOMER")
@@ -29,28 +23,8 @@ export class DisbursementAccountVerificationController {
       }),
     )
     applicationId: string,
-    @Req() request: AccountRequest,
+    @Req() request: AuthenticatedRequest,
   ) {
-    if (Object.keys(request.query).length > 0) {
-      throw new ValidationException([
-        { field: "query", message: "Query parameters are not allowed." },
-      ]);
-    }
-
-    const body = request.body;
-    if (
-      (request.headers["content-length"] !== undefined &&
-        request.headers["content-length"] !== "0") ||
-      request.headers["transfer-encoding"] !== undefined ||
-      (body !== undefined &&
-        (body === null ||
-          typeof body !== "object" ||
-          Array.isArray(body) ||
-          Object.keys(body).length > 0))
-    ) {
-      throw new ValidationException([{ field: "body", message: "Request body must be empty." }]);
-    }
-
     return this.service.verify(applicationId, request.user!.id);
   }
 }
