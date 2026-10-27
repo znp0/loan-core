@@ -6,6 +6,7 @@ import {
   ApplicationNotFoundException,
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
+import { VerificationStatus } from "../../generated/prisma/enums";
 import { PrismaService } from "../prisma/prisma.service";
 
 function normalizeName(value: string): string {
@@ -64,7 +65,8 @@ export class DisbursementAccountVerificationService {
           mismatchedFields.push("accountHolderName");
         }
 
-        const status = mismatchedFields.length === 0 ? "VERIFIED" : "FAILED";
+        const status =
+          mismatchedFields.length === 0 ? VerificationStatus.VERIFIED : VerificationStatus.FAILED;
         await transaction.loanApplication.update({
           where: { id: applicationId },
           data: { accountVerificationStatus: status, updatedAt: new Date() },

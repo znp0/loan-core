@@ -6,6 +6,7 @@ import {
   DependencyUnavailableException,
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
+import { IdentityVerificationStatus, VerificationStatus } from "../../generated/prisma/enums";
 import { PrismaService } from "../prisma/prisma.service";
 
 type ProductTerms = {
@@ -242,7 +243,8 @@ export class ValidationService {
     add(
       "IDENTITY_VERIFICATION",
       "identityVerification",
-      latestIdentity?.status === "PASSED" && latestIdentity.invalidatedAt === null,
+      latestIdentity?.status === IdentityVerificationStatus.PASSED &&
+        latestIdentity.invalidatedAt === null,
       "The latest identity verification must be PASSED and current.",
     );
     const currentDocuments = new Set<string>(
@@ -264,7 +266,7 @@ export class ValidationService {
     add(
       "DISBURSEMENT_ACCOUNT",
       "disbursementAccount",
-      application.accountVerificationStatus === "VERIFIED" &&
+      application.accountVerificationStatus === VerificationStatus.VERIFIED &&
         nonblank(application.accountNumber) &&
         nonblank(application.accountHolderName),
       "Complete and verify the disbursement account.",

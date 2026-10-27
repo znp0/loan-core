@@ -10,6 +10,7 @@ import {
   applicationNotEditableException,
 } from "../../common/exceptions/app.exceptions";
 import type { Prisma } from "../../generated/prisma/client";
+import { VerificationStatus } from "../../generated/prisma/enums";
 import { PrismaService } from "../prisma/prisma.service";
 import { ApplicationEligibilityPolicy } from "./application-eligibility.policy";
 import { applicationInclude, applicationResponse, documentResponse } from "./application.response";
@@ -118,7 +119,7 @@ export class LoanApplicationsService {
               application[key as "accountNumber" | "accountHolderName"] !== value,
           );
         if (nameChanged || accountChanged) {
-          data.accountVerificationStatus = "UNVERIFIED";
+          data.accountVerificationStatus = VerificationStatus.UNVERIFIED;
         }
 
         if (dto.contacts) {
