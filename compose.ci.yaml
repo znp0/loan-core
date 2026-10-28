@@ -40,6 +40,7 @@ services:
   repayment-service:
     environment:
       DATABASE_URL: postgresql://repayment_service:test-only-password@postgres:5432/repayment
+      JWT_SECRET: ci-only-loan-core-jwt-signing-secret
       REPAYMENT_INTERNAL_TOKEN: test-only-repayment-internal-token
     depends_on:
       postgres:
