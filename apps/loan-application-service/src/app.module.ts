@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
 
-import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { HttpModule } from "@repo/http";
+
 import { HealthController } from "./health/health.controller";
 import { ContractModule } from "./modules/contract/contract.module";
 import { DisbursementModule } from "./modules/disbursement/disbursement.module";
@@ -15,6 +15,7 @@ import { SubmissionModule } from "./modules/submission/submission.module";
 
 @Module({
   imports: [
+    HttpModule,
     PrismaModule,
     LoanApplicationsModule,
     ContractModule,
@@ -26,6 +27,5 @@ import { SubmissionModule } from "./modules/submission/submission.module";
     StaffLoanApplicationsModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })
 export class AppModule {}

@@ -1,7 +1,8 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query, UsePipes } from "@nestjs/common";
 
+import { RequestValidationPipe } from "@repo/http";
+
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { ListLoanProductQuery } from "./loan-product.dto";
 import { LoanProductService } from "./loan-product.service";
 

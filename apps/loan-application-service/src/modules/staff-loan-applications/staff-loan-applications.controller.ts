@@ -10,9 +10,10 @@ import {
   UsePipes,
 } from "@nestjs/common";
 
+import { RequestValidationPipe } from "@repo/http";
+
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { RequireRoles, RoleGuard } from "../../common/guards/role.guard";
-import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { ApplicationDecisionDto } from "./staff-loan-applications.dto";
 import { StaffLoanApplicationsService } from "./staff-loan-applications.service";
 

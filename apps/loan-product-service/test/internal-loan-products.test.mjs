@@ -6,7 +6,7 @@ import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 
-import { HttpExceptionFilter } from "../dist/common/filters/http-exception.filter.js";
+import { HttpExceptionFilter } from "@repo/http";
 import { InternalLoanProductController } from "../dist/modules/loan-product/internal-loan-product.controller.js";
 import { LoanProductService } from "../dist/modules/loan-product/loan-product.service.js";
 import { ProductInternalTokenGuard } from "../dist/common/guards/product-internal-token.guard.js";

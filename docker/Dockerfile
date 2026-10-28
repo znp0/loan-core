@@ -40,7 +40,7 @@ RUN --mount=type=cache,id=loan-core-pnpm,target=/pnpm/store \
 
 COPY --from=pruner /workspace/out/full/ ./
 
-RUN pnpm --filter "${SERVICE}" build
+RUN pnpm --filter "${SERVICE}..." build
 
 RUN --mount=type=cache,id=loan-core-pnpm,target=/pnpm/store \
     pnpm --filter "${SERVICE}" deploy --legacy --prod --store-dir /pnpm/store /runtime

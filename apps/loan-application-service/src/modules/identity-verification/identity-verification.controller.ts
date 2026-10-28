@@ -9,9 +9,10 @@ import {
   UsePipes,
 } from "@nestjs/common";
 
+import { RequestValidationPipe } from "@repo/http";
+
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
-import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { IdentityVerificationDto } from "./identity-verification.dto";
 import { IdentityVerificationService } from "./identity-verification.service";
 

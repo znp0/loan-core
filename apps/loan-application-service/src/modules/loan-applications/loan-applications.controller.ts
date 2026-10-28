@@ -13,9 +13,10 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 
+import { RequestValidationPipe } from "@repo/http";
+
 import { CustomerGuard, type CustomerRequest } from "../../common/auth/customer.guard";
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequestValidationPipe } from "../../common/pipes/request-validation.pipe";
 import { MAX_DOCUMENT_SIZE } from "./loan-applications.constants";
 import {
   CreateApplicationDto,
