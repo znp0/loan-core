@@ -16,15 +16,41 @@ enum LoanStatus {
 }
 
 model Loan {
-  id            String     @id @default(uuid()) @db.Uuid
-  applicationId String     @unique(map: "loans_application_id_key") @map("application_id") @db.Uuid
-  customerId    String     @map("customer_id") @db.Uuid
-  status        LoanStatus @default(ACTIVE)
-  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String                 @id @default(uuid()) @db.Uuid
+  applicationId String                 @unique(map: "loans_application_id_key") @map("application_id") @db.Uuid
+  customerId    String                 @map("customer_id") @db.Uuid
+  status        LoanStatus             @default(ACTIVE)
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  installments  RepaymentInstallment[]
 
-  @@index([customerId, status], map: "loans_customer_id_status_idx")
   // Partial unique index: at most one ACTIVE or OVERDUE loan per customer; CLOSED loans are excluded.
   @@unique([customerId], map: "uq_customer_active_loan", where: raw("(status = ANY (ARRAY['ACTIVE'::\"LoanStatus\", 'OVERDUE'::\"LoanStatus\"]))"))
+  @@index([customerId, status], map: "loans_customer_id_status_idx")
   @@map("loans")
+}
+
+enum InstallmentStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+model RepaymentInstallment {
+  id                String            @id @default(uuid()) @db.Uuid
+  loanId            String            @map("loan_id") @db.Uuid
+  loan              Loan              @relation(fields: [loanId], references: [id], onDelete: Restrict)
+  installmentNumber Int               @map("installment_number")
+  dueDate           DateTime          @map("due_date") @db.Date
+  openingPrincipal  BigInt            @map("opening_principal")
+  principalAmount   BigInt            @map("principal_amount")
+  interestAmount    BigInt            @map("interest_amount")
+  totalAmount       BigInt            @map("total_amount")
+  paidPrincipal     BigInt            @default(0) @map("paid_principal")
+  paidInterest      BigInt            @default(0) @map("paid_interest")
+  status            InstallmentStatus @default(PENDING)
+
+  @@unique([loanId, installmentNumber])
+  @@map("repayment_installments")
 }

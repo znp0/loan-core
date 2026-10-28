@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url);
 const { AppModule } = require("../dist/app.module.js");
 const { PrismaService } = require("../dist/modules/prisma/prisma.service.js");
 const originalToken = process.env.REPAYMENT_INTERNAL_TOKEN;
+const originalJwtSecret = process.env.JWT_SECRET;
 const customerId = randomUUID();
 const token = "test-internal-token";
 const loans = [];
@@ -38,6 +39,7 @@ async function get(id = customerId, suppliedToken = token) {
 
 before(async () => {
   process.env.REPAYMENT_INTERNAL_TOKEN = token;
+  process.env.JWT_SECRET = "repayment-test-only-signing-secret-with-sufficient-length";
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(PrismaService)
     .useValue(repository)
@@ -56,6 +58,11 @@ beforeEach(() => {
 
 after(async () => {
   await app?.close();
+  if (originalJwtSecret === undefined) {
+    delete process.env.JWT_SECRET;
+  } else {
+    process.env.JWT_SECRET = originalJwtSecret;
+  }
   if (originalToken === undefined) {
     delete process.env.REPAYMENT_INTERNAL_TOKEN;
   } else {
