@@ -24,6 +24,7 @@ model Loan {
   updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([customerId, status], map: "loans_customer_id_status_idx")
+  // Partial unique index: at most one ACTIVE or OVERDUE loan per customer; CLOSED loans are excluded.
   @@unique([customerId], map: "uq_customer_active_loan", where: raw("(status = ANY (ARRAY['ACTIVE'::\"LoanStatus\", 'OVERDUE'::\"LoanStatus\"]))"))
   @@map("loans")
 }
