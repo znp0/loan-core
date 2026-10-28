@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 
+import { requireJwtSecret } from "@repo/auth";
+
 import { PrismaModule } from "../prisma/prisma.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
@@ -10,7 +12,7 @@ import { AuthService } from "./auth.service";
     PrismaModule,
     JwtModule.registerAsync({
       useFactory: () => {
-        const secret = process.env.JWT_SECRET;
+        const secret = requireJwtSecret();
 
         return { secret, signOptions: { expiresIn: "1h", algorithm: "HS256" } };
       },

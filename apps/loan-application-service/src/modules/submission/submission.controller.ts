@@ -11,9 +11,9 @@ import {
 } from "@nestjs/common";
 
 import { RequestValidationPipe } from "@repo/http";
+import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "@repo/auth";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
 import { SubmissionDto } from "./submission.dto";
 import { SubmissionService } from "./submission.service";
 

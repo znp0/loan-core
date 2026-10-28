@@ -1,7 +1,8 @@
 import { Controller, Get, Param, ParseUUIDPipe, Req, UseGuards } from "@nestjs/common";
 
+import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "@repo/auth";
+
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
 import { DisbursementService } from "./disbursement.service";
 
 @Controller("loan-applications/:applicationId/disbursement")

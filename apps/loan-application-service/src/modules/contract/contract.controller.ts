@@ -10,8 +10,9 @@ import {
   UseGuards,
 } from "@nestjs/common";
 
+import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "@repo/auth";
+
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard, type AuthenticatedRequest } from "../../common/guards/role.guard";
 import { ContractService } from "./contract.service";
 
 @Controller("loan-applications/:applicationId/contract")

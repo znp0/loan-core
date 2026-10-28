@@ -23,6 +23,9 @@
       "dependsOn": ["^check-types"],
       "outputs": ["src/generated/prisma/**"]
     },
+    "@repo/auth#check-types": {
+      "outputs": []
+    },
     "@repo/http#check-types": {
       "outputs": []
     },

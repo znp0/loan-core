@@ -1,11 +1,12 @@
 import { Module } from "@nestjs/common";
 
-import { RoleGuardModule } from "../../common/guards/role-guard.module";
+import { AccessAuthModule } from "@repo/auth";
+
 import { DisbursementController } from "./disbursement.controller";
 import { DisbursementService } from "./disbursement.service";
 
 @Module({
-  imports: [RoleGuardModule],
+  imports: [AccessAuthModule],
   controllers: [DisbursementController],
   providers: [DisbursementService],
 })

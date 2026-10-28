@@ -11,9 +11,9 @@ import {
 } from "@nestjs/common";
 
 import { RequestValidationPipe } from "@repo/http";
+import { RequireRoles, RoleGuard } from "@repo/auth";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { RequireRoles, RoleGuard } from "../../common/guards/role.guard";
 import { ApplicationDecisionDto } from "./staff-loan-applications.dto";
 import { StaffLoanApplicationsService } from "./staff-loan-applications.service";
 

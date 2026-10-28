@@ -1,21 +1,23 @@
 import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from "@nestjs/common";
 
+import { InternalTokenGuard, RequireInternalToken } from "@repo/auth";
+
 import { ValidationException } from "../../common/exceptions/app.exceptions";
-import { ProductInternalTokenGuard } from "../../common/guards/product-internal-token.guard";
 import { LoanProductService } from "./loan-product.service";
 
 @Controller("internal/loan-products")
+@RequireInternalToken("PRODUCT_INTERNAL_TOKEN")
 export class InternalLoanProductController {
   constructor(private readonly loanProductService: LoanProductService) {}
 
   @Get(":productId")
-  @UseGuards(ProductInternalTokenGuard)
+  @UseGuards(InternalTokenGuard)
   get(@Param("productId", new ParseUUIDPipe()) id: string) {
     return this.loanProductService.getById(id);
   }
 
   @Get(":productId/validation-terms")
-  @UseGuards(ProductInternalTokenGuard)
+  @UseGuards(InternalTokenGuard)
   getValidationTerms(
     @Param(
       "productId",
