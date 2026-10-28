@@ -89,10 +89,59 @@ model LoanApplication {
   documents                 ApplicationDocument[]
   identityVerifications     IdentityVerification[]
   contracts                 LoanContract[]
+  disbursement              Disbursement?
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([productId])
   @@map("loan_applications")
+}
+
+enum DisbursementStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum DisbursementAttemptStatus {
+  SUCCEEDED
+  FAILED
+}
+
+enum DisbursementCurrency {
+  VND
+}
+
+model Disbursement {
+  id                String                @id @default(uuid()) @db.Uuid
+  applicationId     String                @unique @map("application_id") @db.Uuid
+  application       LoanApplication       @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  amount            BigInt
+  currency          DisbursementCurrency  @default(VND)
+  accountNumber     String                @map("account_number")
+  accountHolderName String                @map("account_holder_name")
+  status            DisbursementStatus    @default(PENDING)
+  loanId            String?               @map("loan_id") @db.Uuid
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt       DateTime?             @map("completed_at") @db.Timestamptz(3)
+  attempts          DisbursementAttempt[]
+
+  @@map("disbursements")
+}
+
+model DisbursementAttempt {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  disbursementId       String                    @map("disbursement_id") @db.Uuid
+  disbursement         Disbursement              @relation(fields: [disbursementId], references: [id], onDelete: Restrict)
+  attemptNumber        Int                       @map("attempt_number")
+  status               DisbursementAttemptStatus
+  transactionReference String?                   @map("transaction_reference")
+  failureCode          String?                   @map("failure_code")
+  failureMessage       String?                   @map("failure_message")
+  processedAt          DateTime                  @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([disbursementId, attemptNumber])
+  @@map("disbursement_attempts")
 }
 
 model ApplicationContact {
