@@ -43,7 +43,10 @@ function amountNumber(value: bigint): number {
   return result;
 }
 
-function contractResponse(contract: LoanContract, schedulePreview = contract.schedulePreview) {
+export function contractResponse(
+  contract: LoanContract,
+  schedulePreview = contract.schedulePreview,
+) {
   return {
     id: contract.id,
     applicationId: contract.applicationId,

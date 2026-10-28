@@ -9,6 +9,7 @@ import { DisbursementAccountVerificationModule } from "./modules/disbursement-ac
 import { IdentityVerificationModule } from "./modules/identity-verification/identity-verification.module";
 import { LoanApplicationsModule } from "./modules/loan-applications/loan-applications.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
+import { StaffLoanApplicationsModule } from "./modules/staff-loan-applications/staff-loan-applications.module";
 import { ValidationModule } from "./modules/validation/validation.module";
 import { SubmissionModule } from "./modules/submission/submission.module";
 
@@ -22,6 +23,7 @@ import { SubmissionModule } from "./modules/submission/submission.module";
     DisbursementAccountVerificationModule,
     ValidationModule,
     SubmissionModule,
+    StaffLoanApplicationsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
