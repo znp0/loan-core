@@ -163,7 +163,7 @@ function assertTokens(response, customer) {
   return claims;
 }
 
-test("register persists a CUSTOMER with a salted bcrypt hash and returns only the success message", async () => {
+test("register persists a customer without a role column and issues CUSTOMER tokens", async () => {
   const input = account();
   const response = await post("register", input);
 
@@ -174,7 +174,7 @@ test("register persists a CUSTOMER with a salted bcrypt hash and returns only th
   assert.match(customer.id, /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/);
   assert.equal(customer.fullName, input.fullName);
   assert.equal(customer.email, input.email);
-  assert.equal(customer.role, "CUSTOMER");
+  assert.equal("role" in customer, false);
   assert.match(customer.passwordHash, /^\$2[ab]\$12\$/);
   const prehash = createHash("sha256").update(input.password).digest("base64");
 
@@ -358,7 +358,7 @@ test("unknown fields cannot override role, id or passwordHash", async () => {
   assert.equal(response.status, 201);
   const customer = await database.customer.findUnique({ where: { phone: input.phone } });
 
-  assert.equal(customer.role, "CUSTOMER");
+  assert.equal("role" in customer, false);
   assert.notEqual(customer.passwordHash, "injected");
   assertTokens(response, customer);
 });
