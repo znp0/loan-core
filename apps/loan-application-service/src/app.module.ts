@@ -4,6 +4,7 @@ import { APP_FILTER } from "@nestjs/core";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { HealthController } from "./health/health.controller";
 import { ContractModule } from "./modules/contract/contract.module";
+import { DisbursementModule } from "./modules/disbursement/disbursement.module";
 import { DisbursementAccountVerificationModule } from "./modules/disbursement-account-verification/disbursement-account-verification.module";
 import { IdentityVerificationModule } from "./modules/identity-verification/identity-verification.module";
 import { LoanApplicationsModule } from "./modules/loan-applications/loan-applications.module";
@@ -16,6 +17,7 @@ import { SubmissionModule } from "./modules/submission/submission.module";
     PrismaModule,
     LoanApplicationsModule,
     ContractModule,
+    DisbursementModule,
     IdentityVerificationModule,
     DisbursementAccountVerificationModule,
     ValidationModule,

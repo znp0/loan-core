@@ -76,6 +76,16 @@ export class ContractNotFoundException extends AppException {
   }
 }
 
+export class DisbursementNotFoundException extends AppException {
+  constructor() {
+    super(
+      HttpStatus.NOT_FOUND,
+      ErrorCodes.DISBURSEMENT_NOT_FOUND,
+      "The disbursement record was not found.",
+    );
+  }
+}
+
 export class ContractVersionMismatchException extends AppException {
   constructor() {
     super(
