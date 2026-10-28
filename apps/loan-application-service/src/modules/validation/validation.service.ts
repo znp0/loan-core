@@ -53,7 +53,9 @@ function isProductTerms(value: unknown, productId: string): value is ProductTerm
   if (typeof value !== "object" || value === null) {
     return false;
   }
+
   const terms = value as Partial<ProductTerms>;
+
   return (
     terms.id === productId &&
     Number.isSafeInteger(terms.minAmount) &&
@@ -75,7 +77,6 @@ export class ValidationService {
 
   async validate(applicationId: string, customerId: string) {
     const evaluation = await this.evaluate(applicationId, customerId);
-
     return evaluation.result;
   }
 
@@ -117,7 +118,12 @@ export class ValidationService {
     const checkedAt = new Date();
     const today = vietnamDate(checkedAt);
     const checks: Check[] = [];
-    const add = (code: string, field: string, passed: boolean, failure: string): void => {
+    const addValidationCheck = (
+      code: string,
+      field: string,
+      passed: boolean,
+      failure: string,
+    ): void => {
       checks.push({
         code,
         field,
@@ -135,6 +141,7 @@ export class ValidationService {
     ]
       .filter(([, value]) => !nonblank(value as string | null))
       .map(([field]) => field);
+
     for (const [field, value] of [
       ["dateOfBirth", application.dateOfBirth],
       ["identityIssuedDate", application.identityIssuedDate],
@@ -143,7 +150,8 @@ export class ValidationService {
         missingApplication.push(`applicantInfo.${field}`);
       }
     }
-    add(
+
+    addValidationCheck(
       "REQUIRED_APPLICATION",
       "application",
       missingApplication.length === 0,
@@ -158,7 +166,8 @@ export class ValidationService {
     ]
       .filter(([, value]) => !nonblank(value as string | null))
       .map(([field]) => field);
-    add(
+
+    addValidationCheck(
       "CURRENT_ADDRESS",
       "currentAddress",
       missingAddress.length === 0,
@@ -166,9 +175,11 @@ export class ValidationService {
     );
 
     const missingEmployment: string[] = [];
+
     if (!application.employmentType) {
       missingEmployment.push("employmentType");
     }
+
     if (application.employmentType === "SALARIED") {
       if (!nonblank(application.employerName)) {
         missingEmployment.push("employerName");
@@ -180,7 +191,8 @@ export class ValidationService {
         missingEmployment.push("employmentStartDate");
       }
     }
-    add(
+
+    addValidationCheck(
       "EMPLOYMENT",
       "employmentInfo",
       missingEmployment.length === 0,
@@ -197,7 +209,8 @@ export class ValidationService {
     const distinctPhones =
       contacts.length === REQUIRED_CONTACT_COUNT &&
       contacts[0]?.phone.trim() !== contacts[1]?.phone.trim();
-    add(
+
+    addValidationCheck(
       "CONTACTS",
       "contacts",
       completeContacts && distinctPhones,
@@ -213,19 +226,20 @@ export class ValidationService {
         birthYear -
         Number(today.month < birthMonth || (today.month === birthMonth && today.day < birthDay))
       : null;
-    add(
+
+    addValidationCheck(
       "AGE",
       "applicantInfo.dateOfBirth",
       Boolean(product && age !== null && age >= product.minAge && age <= product.maxAge),
       "Applicant age is outside the product limits or cannot be checked.",
     );
-    add(
+    addValidationCheck(
       "MONTHLY_INCOME",
       "financialInfo.monthlyIncome",
       application.monthlyIncome !== null && application.monthlyIncome > 0n,
       "Monthly income must be greater than zero.",
     );
-    add(
+    addValidationCheck(
       "AMOUNT",
       "requestedAmount",
       Boolean(
@@ -235,20 +249,22 @@ export class ValidationService {
       ),
       "Requested amount is outside the product limits or cannot be checked.",
     );
-    add(
+    addValidationCheck(
       "TERM",
       "termMonths",
       Boolean(product?.allowedTerms.includes(application.termMonths)),
       "Term is not allowed by the product or cannot be checked.",
     );
+
     const latestIdentity = application.identityVerifications[0];
-    add(
+    addValidationCheck(
       "IDENTITY_VERIFICATION",
       "identityVerification",
       latestIdentity?.status === IdentityVerificationStatus.PASSED &&
         latestIdentity.invalidatedAt === null,
       "The latest identity verification must be PASSED and current.",
     );
+
     const currentDocuments = new Set<string>(
       application.documents
         .filter((document) => document.isCurrent)
@@ -257,7 +273,8 @@ export class ValidationService {
     const missingDocuments = product?.requiredDocumentTypes.filter(
       (type) => !currentDocuments.has(type),
     );
-    add(
+
+    addValidationCheck(
       "REQUIRED_DOCUMENTS",
       "documents",
       Boolean(missingDocuments && missingDocuments.length === 0),
@@ -265,7 +282,7 @@ export class ValidationService {
         ? `Missing current documents: ${missingDocuments?.join(", ")}.`
         : "Product terms are unavailable.",
     );
-    add(
+    addValidationCheck(
       "DISBURSEMENT_ACCOUNT",
       "disbursementAccount",
       application.accountVerificationStatus === VerificationStatus.VERIFIED &&
@@ -273,13 +290,18 @@ export class ValidationService {
         nonblank(application.accountHolderName),
       "Complete and verify the disbursement account.",
     );
-    add(
+    addValidationCheck(
       "ACTIVE_APPLICATION",
       "applicationId",
       activeApplications === 0,
       "Another active loan application exists.",
     );
-    add("ACTIVE_LOAN", "customerId", !hasActiveLoan, "An unpaid loan already exists.");
+    addValidationCheck(
+      "ACTIVE_LOAN",
+      "customerId",
+      !hasActiveLoan,
+      "An unpaid loan already exists.",
+    );
 
     return {
       result: {
@@ -295,10 +317,13 @@ export class ValidationService {
   private async productTerms(productId: string): Promise<ProductTerms | null> {
     const base = process.env.LOAN_PRODUCT_SERVICE_URL;
     const token = process.env.PRODUCT_INTERNAL_TOKEN;
+
     if (!base || !token) {
       throw new DependencyUnavailableException();
     }
+
     let response: Response;
+
     try {
       response = await fetch(
         `${base.replace(/\/$/, "")}/api/v1/internal/loan-products/${productId}/validation-terms`,
@@ -310,6 +335,7 @@ export class ValidationService {
     } catch {
       throw new DependencyUnavailableException();
     }
+
     if (response.status === 404) {
       try {
         const body: unknown = await response.json();
@@ -326,9 +352,11 @@ export class ValidationService {
       }
       throw new DependencyUnavailableException();
     }
+
     if (!response.ok) {
       throw new DependencyUnavailableException();
     }
+
     try {
       const value: unknown = await response.json();
       if (isProductTerms(value, productId)) {
@@ -337,16 +365,20 @@ export class ValidationService {
     } catch {
       throw new DependencyUnavailableException();
     }
+
     throw new DependencyUnavailableException();
   }
 
   private async activeLoan(customerId: string): Promise<boolean> {
     const base = process.env.REPAYMENT_SERVICE_URL;
     const token = process.env.REPAYMENT_INTERNAL_TOKEN;
+
     if (!base || !token) {
       throw new DependencyUnavailableException();
     }
+
     let response: Response;
+
     try {
       response = await fetch(
         `${base.replace(/\/$/, "")}/api/v1/internal/customers/${customerId}/active-loan`,
@@ -358,9 +390,11 @@ export class ValidationService {
     } catch {
       throw new DependencyUnavailableException();
     }
+
     if (!response.ok) {
       throw new DependencyUnavailableException();
     }
+
     try {
       const value: unknown = await response.json();
       if (
@@ -374,6 +408,7 @@ export class ValidationService {
     } catch {
       throw new DependencyUnavailableException();
     }
+
     throw new DependencyUnavailableException();
   }
 }
