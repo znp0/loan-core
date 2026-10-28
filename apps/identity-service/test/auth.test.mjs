@@ -258,8 +258,9 @@ test(
 
       assert.equal(response.status, 500);
       assert.deepEqual(await response.json(), {
-        statusCode: 500,
-        message: "Internal server error",
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred.",
+        details: [],
       });
       assert.deepEqual(response.headers.getSetCookie(), []);
     } finally {
@@ -396,8 +397,9 @@ test(
 
         assert.equal(response.status, 500);
         assert.deepEqual(await response.json(), {
-          statusCode: 500,
-          message: "Internal server error",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unexpected error occurred.",
+          details: [],
         });
         assert.deepEqual(response.headers.getSetCookie(), []);
       } finally {

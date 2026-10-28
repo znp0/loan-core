@@ -5,10 +5,10 @@
   "type": "commonjs",
   "scripts": {
     "dev": "pnpm run build && concurrently --kill-others --names compiler,server \"tsc --project tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/main.js\"",
-    "build": "pnpm db:generate && tsc --project tsconfig.build.json",
+    "build": "pnpm --filter @repo/http build && pnpm db:generate && tsc --project tsconfig.build.json",
     "start": "node dist/main.js",
     "lint": "eslint src prisma.config.ts --max-warnings=0",
-    "check-types": "pnpm db:generate && tsc --noEmit",
+    "check-types": "pnpm --filter @repo/http build && pnpm db:generate && tsc --noEmit",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
@@ -26,7 +26,8 @@
     "class-validator": "0.14.4",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "@repo/http": "workspace:*"
   },
   "devDependencies": {
     "@nestjs/cli": "12.0.1",

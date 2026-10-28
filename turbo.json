@@ -6,6 +6,7 @@
       "outputs": ["dist/**", "src/generated/prisma/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
@@ -21,6 +22,9 @@
     "check-types": {
       "dependsOn": ["^check-types"],
       "outputs": ["src/generated/prisma/**"]
+    },
+    "@repo/http#check-types": {
+      "outputs": []
     },
     "api-gateway#check-types": {
       "outputs": []

@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { BadRequestException } from "@nestjs/common";
 
-import { HttpExceptionFilter } from "../dist/common/filters/http-exception.filter.js";
+import { HttpExceptionFilter } from "@repo/http";
 import { InternalLoanProductController } from "../dist/modules/loan-product/internal-loan-product.controller.js";
 import { LoanProductService } from "../dist/modules/loan-product/loan-product.service.js";
 

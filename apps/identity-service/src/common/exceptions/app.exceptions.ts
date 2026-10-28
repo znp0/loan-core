@@ -1,18 +1,11 @@
-import { HttpException, HttpStatus } from "@nestjs/common";
+import { HttpStatus } from "@nestjs/common";
 
-import { ErrorCodes, type ErrorCode } from "../constants/error-codes";
+import { AppException } from "@repo/http";
 
-export class AppException extends HttpException {
-  constructor(status: HttpStatus, code: ErrorCode, message: string, details: unknown[] = []) {
-    super({ code, message, details }, status);
-  }
-}
+import { ErrorCodes } from "../constants/error-codes";
 
-export class ValidationException extends AppException {
-  constructor(details: unknown[] = []) {
-    super(HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR, "Invalid request input.", details);
-  }
-}
+export { AppException, ValidationException } from "@repo/http";
+export type { ErrorDetail } from "@repo/http";
 
 export class PhoneAlreadyExistsException extends AppException {
   constructor() {
