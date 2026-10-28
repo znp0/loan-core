@@ -5,7 +5,8 @@ import {
   DisbursementNotFoundException,
   ForbiddenException,
 } from "../../common/exceptions/app.exceptions";
-import type { AccessRole } from "../../common/guards/role.guard";
+import type { AccessRole } from "@repo/auth";
+
 import { PrismaService } from "../prisma/prisma.service";
 
 const VISIBLE_ACCOUNT_NUMBER_DIGITS = 4;

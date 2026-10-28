@@ -9,7 +9,7 @@ import { NestFactory } from "@nestjs/core";
 import { HttpExceptionFilter } from "@repo/http";
 import { InternalLoanProductController } from "../dist/modules/loan-product/internal-loan-product.controller.js";
 import { LoanProductService } from "../dist/modules/loan-product/loan-product.service.js";
-import { ProductInternalTokenGuard } from "../dist/common/guards/product-internal-token.guard.js";
+import { InternalAuthModule } from "@repo/auth";
 import { PrismaService } from "../dist/modules/prisma/prisma.service.js";
 
 const activeId = "00000000-0000-4000-8000-000000000001";
@@ -41,10 +41,10 @@ let reads = 0;
 class TestModule {}
 
 Module({
+  imports: [InternalAuthModule],
   controllers: [InternalLoanProductController],
   providers: [
     LoanProductService,
-    ProductInternalTokenGuard,
     {
       provide: PrismaService,
       useValue: {

@@ -39,6 +39,7 @@ jobs:
           node scripts/configure-ci-env.mjs
       - run: node --test scripts/test/*.test.mjs
       - run: pnpm --filter @repo/http test
+      - run: pnpm --filter @repo/auth test
       - run: pnpm test
 
   containers:

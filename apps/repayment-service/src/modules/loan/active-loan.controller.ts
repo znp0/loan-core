@@ -1,10 +1,12 @@
 import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from "@nestjs/common";
 
-import { RepaymentInternalTokenGuard } from "../../common/guards/repayment-internal-token.guard";
+import { InternalTokenGuard, RequireInternalToken } from "@repo/auth";
+
 import { ActiveLoanService } from "./active-loan.service";
 
 @Controller("internal/customers")
-@UseGuards(RepaymentInternalTokenGuard)
+@UseGuards(InternalTokenGuard)
+@RequireInternalToken("REPAYMENT_INTERNAL_TOKEN")
 export class ActiveLoanController {
   constructor(private readonly activeLoanService: ActiveLoanService) {}
 

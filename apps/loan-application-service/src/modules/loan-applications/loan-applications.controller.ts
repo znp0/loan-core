@@ -14,8 +14,8 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 
 import { RequestValidationPipe } from "@repo/http";
+import { RoleGuard, RequireRoles, type AuthenticatedRequest } from "@repo/auth";
 
-import { CustomerGuard, type CustomerRequest } from "../../common/auth/customer.guard";
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { MAX_DOCUMENT_SIZE } from "./loan-applications.constants";
 import {
@@ -34,23 +34,24 @@ const applicationIdPipe = new ParseUUIDPipe({
 });
 
 @Controller("loan-applications")
-@UseGuards(CustomerGuard)
+@UseGuards(RoleGuard)
+@RequireRoles("CUSTOMER")
 @UsePipes(new RequestValidationPipe())
 export class LoanApplicationsController {
   constructor(private readonly loanApplicationsService: LoanApplicationsService) {}
 
   @Post()
-  create(@Req() request: CustomerRequest, @Body() dto: CreateApplicationDto) {
-    return this.loanApplicationsService.create(request.customerId, dto);
+  create(@Req() request: AuthenticatedRequest, @Body() dto: CreateApplicationDto) {
+    return this.loanApplicationsService.create(request.user!.id, dto);
   }
 
   @Patch(":applicationId")
   update(
-    @Req() request: CustomerRequest,
+    @Req() request: AuthenticatedRequest,
     @Param("applicationId", applicationIdPipe) id: string,
     @Body() dto: UpdateApplicationDto,
   ) {
-    return this.loanApplicationsService.update(request.customerId, id, dto);
+    return this.loanApplicationsService.update(request.user!.id, id, dto);
   }
 
   @Post(":applicationId/documents")
@@ -60,11 +61,11 @@ export class LoanApplicationsController {
     }),
   )
   upload(
-    @Req() request: CustomerRequest,
+    @Req() request: AuthenticatedRequest,
     @Param("applicationId", applicationIdPipe) id: string,
     @Body() dto: UploadDocumentDto,
     @UploadedFile() file?: UploadedDocument,
   ) {
-    return this.loanApplicationsService.uploadDocument(request.customerId, id, dto, file);
+    return this.loanApplicationsService.uploadDocument(request.user!.id, id, dto, file);
   }
 }
