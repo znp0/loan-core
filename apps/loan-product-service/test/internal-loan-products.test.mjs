@@ -102,8 +102,17 @@ test("internal validation terms require a configured token and include active an
       details: [{ field: "productId", message: "Product ID must be a UUID." }],
     });
 
+    const internalRead = await fetch(`${base}/${inactiveId}`, { headers: auth });
+    assert.equal(internalRead.status, 200);
+    assert.equal((await internalRead.json()).status, "INACTIVE");
+
     const readsBeforeUnauthorized = reads;
     for (const headers of [{}, { "X-Internal-Service-Token": "wrong" }]) {
+      for (const suffix of ["", "/validation-terms"]) {
+        const denied = await fetch(`${base}/${activeId}${suffix}`, { headers });
+        assert.equal(denied.status, 401);
+      }
+
       const response = await fetch(`${base}/${activeId}/validation-terms`, { headers });
       assert.equal(response.status, 401);
       assert.deepEqual(await response.json(), {

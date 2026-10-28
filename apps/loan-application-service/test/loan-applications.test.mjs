@@ -94,7 +94,7 @@ test("loan application HTTP contract", async (t) => {
   const storageRoot = await mkdtemp(join(tmpdir(), "loan-applications-test-"));
 
   process.env.JWT_SECRET = randomBytes(32).toString("hex");
-  process.env.APPLICATION_SERVICE_TOKEN = "synthetic-service-token";
+  process.env.PRODUCT_INTERNAL_TOKEN = "synthetic-service-token";
   process.env.DOCUMENT_STORAGE_PATH = storageRoot;
   let productServer;
   let productExited;
@@ -115,6 +115,7 @@ test("loan application HTTP contract", async (t) => {
       try {
         const response = await fetch(
           `${process.env.LOAN_PRODUCT_SERVICE_URL}/api/v1/internal/loan-products/${productId()}`,
+          { headers: { "X-Internal-Service-Token": process.env.PRODUCT_INTERNAL_TOKEN } },
         );
 
         ready = response.ok;

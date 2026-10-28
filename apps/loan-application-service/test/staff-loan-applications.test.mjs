@@ -18,7 +18,7 @@ const applicationId = randomUUID();
 const productId = randomUUID();
 const staffId = randomUUID();
 const previousEnvironment = Object.fromEntries(
-  ["JWT_SECRET", "LOAN_PRODUCT_SERVICE_URL", "APPLICATION_SERVICE_TOKEN"].map((key) => [
+  ["JWT_SECRET", "LOAN_PRODUCT_SERVICE_URL", "PRODUCT_INTERNAL_TOKEN"].map((key) => [
     key,
     process.env[key],
   ]),
@@ -75,13 +75,13 @@ async function decision(body, auth = cookie(), id = applicationId) {
 
 before(async () => {
   process.env.JWT_SECRET = secret;
-  process.env.APPLICATION_SERVICE_TOKEN = "staff-review-test-only-service-token";
+  process.env.PRODUCT_INTERNAL_TOKEN = "staff-review-test-only-service-token";
   // Use the existing tests' local HTTP fixture pattern to exercise the real product client.
   productServer = createServer((request, response) => {
     productReads++;
     assert.equal(request.method, "GET");
     assert.equal(request.url, `/api/v1/internal/loan-products/${productId}`);
-    assert.equal(request.headers["x-service-token"], process.env.APPLICATION_SERVICE_TOKEN);
+    assert.equal(request.headers["x-internal-service-token"], process.env.PRODUCT_INTERNAL_TOKEN);
     response.writeHead(productStatus, { "content-type": "application/json" });
     response.end(JSON.stringify(productStatus === 200 ? product : { code: "PRODUCT_NOT_FOUND" }));
   });

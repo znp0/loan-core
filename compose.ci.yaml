@@ -13,13 +13,16 @@ services:
       retries: 20
 
   identity-service:
+    env_file: !reset []
     environment:
       DATABASE_URL: postgresql://identity_service:test-only-password@postgres:5432/identity
+      JWT_SECRET: ci-only-loan-core-jwt-signing-secret
     depends_on:
       postgres:
         condition: service_healthy
 
   loan-product-service:
+    env_file: !reset []
     environment:
       DATABASE_URL: postgresql://loan_product_service:test-only-password@postgres:5432/loan_products
       PRODUCT_INTERNAL_TOKEN: test-only-product-internal-token
@@ -28,6 +31,7 @@ services:
         condition: service_healthy
 
   loan-application-service:
+    env_file: !reset []
     environment:
       DATABASE_URL: postgresql://loan_application_service:test-only-password@postgres:5432/loan_applications
       JWT_SECRET: ci-only-loan-core-jwt-signing-secret
@@ -38,6 +42,7 @@ services:
         condition: service_healthy
 
   repayment-service:
+    env_file: !reset []
     environment:
       DATABASE_URL: postgresql://repayment_service:test-only-password@postgres:5432/repayment
       JWT_SECRET: ci-only-loan-core-jwt-signing-secret
