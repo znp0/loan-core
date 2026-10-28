@@ -36,7 +36,7 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(password);
 
-    let customer: Pick<Customer, "id" | "role">;
+    let customer: Pick<Customer, "id">;
 
     try {
       customer = await this.prisma.customer.create({
@@ -45,9 +45,8 @@ export class AuthService {
           passwordHash,
           fullName,
           email,
-          role: "CUSTOMER",
         },
-        select: { id: true, role: true },
+        select: { id: true },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -64,7 +63,7 @@ export class AuthService {
       throw error;
     }
 
-    return this.issueTokens(customer.id, customer.role);
+    return this.issueTokens(customer.id);
   }
 
   async login(loginDto: LoginDto) {
@@ -84,16 +83,16 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
-    return this.issueTokens(customer.id, customer.role);
+    return this.issueTokens(customer.id);
   }
 
   private async hashPassword(password: string): Promise<string> {
     return hash(prehashPassword(password), 12);
   }
 
-  private async issueTokens(id: string, role: string) {
+  private async issueTokens(id: string) {
     const accessToken = await this.jwt.signAsync(
-      { sub: id, role, tokenType: "access" },
+      { sub: id, role: "CUSTOMER", tokenType: "access" },
       { expiresIn: "15m", jwtid: randomUUID() },
     );
     const refreshToken = await this.jwt.signAsync(
