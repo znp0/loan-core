@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
 import { setTimeout } from "node:timers/promises";
 import test from "node:test";
@@ -39,11 +43,16 @@ async function availablePort() {
 test("public loan product reads expose only active products", async () => {
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
   const port = await availablePort();
-  const child = spawn(process.execPath, ["dist/main.js"], {
-    cwd: new URL("..", import.meta.url),
-    env: { ...process.env, DATABASE_URL: databaseUrl, HOST: "127.0.0.1", PORT: String(port) },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const runtime = await mkdtemp(join(tmpdir(), "loan-product-test-"));
+  const child = spawn(
+    process.execPath,
+    [fileURLToPath(new URL("../dist/main.js", import.meta.url))],
+    {
+      cwd: runtime,
+      env: { ...process.env, DATABASE_URL: databaseUrl, HOST: "127.0.0.1", PORT: String(port) },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
   let logs = "";
 
   child.stdout.on("data", (chunk) => {
@@ -220,5 +229,6 @@ test("public loan product reads expose only active products", async () => {
       await prisma.loanProduct.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();
+    await rm(runtime, { recursive: true, force: true });
   }
 });

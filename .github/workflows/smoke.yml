@@ -37,6 +37,7 @@ jobs:
         run: |
           docker exec --interactive "$POSTGRES_CONTAINER" psql --username postgres --set ON_ERROR_STOP=1 < scripts/ci-databases.sql
           node scripts/configure-ci-env.mjs
+      - run: node --test scripts/test/*.test.mjs
       - run: pnpm test
 
   containers:

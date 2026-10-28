@@ -16,14 +16,14 @@ export class LoanProductClient {
   async getById(productId: string): Promise<LoanProductTerms> {
     try {
       const baseUrl = process.env.LOAN_PRODUCT_SERVICE_URL ?? "http://127.0.0.1:3002";
-      const token = process.env.APPLICATION_SERVICE_TOKEN;
+      const token = process.env.PRODUCT_INTERNAL_TOKEN;
 
       if (!token) {
         throw new Error("Service token is not configured");
       }
 
       const response = await fetch(`${baseUrl}/api/v1/internal/loan-products/${productId}`, {
-        headers: { "x-service-token": token },
+        headers: { "x-internal-service-token": token },
         signal: AbortSignal.timeout(5000),
         redirect: "error",
       });

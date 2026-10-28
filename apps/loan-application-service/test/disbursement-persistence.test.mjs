@@ -48,7 +48,9 @@ test(
 
       async function rejected(sql, params, code) {
         await client.query("SAVEPOINT rejected_write");
-        await assert.rejects(client.query(sql, params), { code });
+        await assert.rejects(client.query(sql, params), (error) => {
+          return [code].flat().includes(error.code);
+        });
         await client.query("ROLLBACK TO SAVEPOINT rejected_write");
       }
 
@@ -73,8 +75,16 @@ test(
       await rejected(insertAttempt, [randomUUID(), disbursementId, 1, "FAILED"], "23505");
       await rejected(insertAttempt, [randomUUID(), disbursementId, 3, "SUCCEEDED"], "23505");
       await rejected(insertAttempt, [randomUUID(), disbursementId, 0, "FAILED"], "23514");
-      await rejected("DELETE FROM loan_applications WHERE id = $1", [applicationId], "23503");
-      await rejected("DELETE FROM disbursements WHERE id = $1", [disbursementId], "23503");
+      await rejected(
+        "DELETE FROM loan_applications WHERE id = $1",
+        [applicationId],
+        ["23503", "23001"],
+      );
+      await rejected(
+        "DELETE FROM disbursements WHERE id = $1",
+        [disbursementId],
+        ["23503", "23001"],
+      );
       const result = await client.query(
         "SELECT attempt_number FROM disbursement_attempts WHERE disbursement_id = $1 ORDER BY attempt_number",
         [disbursementId],

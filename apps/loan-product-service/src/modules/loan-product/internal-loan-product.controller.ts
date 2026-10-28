@@ -1,14 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
-
-import {
-  Controller,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  ParseUUIDPipe,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from "@nestjs/common";
 
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import { ProductInternalTokenGuard } from "../../common/guards/product-internal-token.guard";
@@ -19,24 +9,8 @@ export class InternalLoanProductController {
   constructor(private readonly loanProductService: LoanProductService) {}
 
   @Get(":productId")
-  get(
-    @Param("productId", new ParseUUIDPipe()) id: string,
-    @Headers("x-service-token") token?: string,
-  ) {
-    const expected = process.env.APPLICATION_SERVICE_TOKEN;
-
-    if (
-      !expected ||
-      !token ||
-      Buffer.byteLength(token) !== Buffer.byteLength(expected) ||
-      !timingSafeEqual(Buffer.from(token), Buffer.from(expected))
-    ) {
-      throw new HttpException(
-        { code: "FORBIDDEN", message: "Service authentication required.", details: [] },
-        403,
-      );
-    }
-
+  @UseGuards(ProductInternalTokenGuard)
+  get(@Param("productId", new ParseUUIDPipe()) id: string) {
     return this.loanProductService.getById(id);
   }
 

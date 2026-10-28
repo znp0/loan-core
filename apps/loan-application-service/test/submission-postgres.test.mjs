@@ -121,8 +121,8 @@ test(
           accountVerificationStatus: "VERIFIED",
           contacts: {
             create: [
-              { position: 1, fullName: "One", relationship: "Friend", phone: "0900000001" },
-              { position: 2, fullName: "Two", relationship: "Friend", phone: "0900000002" },
+              { position: 0, fullName: "One", relationship: "Friend", phone: "0900000001" },
+              { position: 1, fullName: "Two", relationship: "Friend", phone: "0900000002" },
             ],
           },
           documents: {

@@ -32,7 +32,19 @@
       "cache": false
     }
   },
-  "globalPassThroughEnv": ["HOST", "PORT", "NODE_ENV", "DATABASE_URL", "DIRECT_URL", "JWT_SECRET"],
+  "globalPassThroughEnv": [
+    "HOST",
+    "PORT",
+    "NODE_ENV",
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "JWT_SECRET",
+    "PRODUCT_INTERNAL_TOKEN",
+    "REPAYMENT_INTERNAL_TOKEN",
+    "LOAN_PRODUCT_SERVICE_URL",
+    "REPAYMENT_SERVICE_URL",
+    "DOCUMENT_STORAGE_PATH"
+  ],
   "globalDependencies": [
     ".env",
     "**/.env",

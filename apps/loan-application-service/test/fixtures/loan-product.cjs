@@ -20,6 +20,15 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (request.headers["x-internal-service-token"] !== process.env.PRODUCT_INTERNAL_TOKEN) {
+    sendJson(response, 401, {
+      code: "UNAUTHORIZED",
+      message: "Fixture authentication required.",
+      details: [],
+    });
+    return;
+  }
+
   const id = match[1];
   const variant = id.at(-1);
 

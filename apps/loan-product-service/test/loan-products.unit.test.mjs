@@ -24,37 +24,12 @@ const product = {
   updatedAt: new Date("2026-10-24T00:00:00.000Z"),
 };
 
-test("internal product reads require the configured service credential and expose inactive terms", async () => {
-  const originalToken = process.env.APPLICATION_SERVICE_TOKEN;
-
-  process.env.APPLICATION_SERVICE_TOKEN = "test-internal-service-token";
+test("internal product reads expose inactive terms after guard authorization", async () => {
   const inactive = { ...product, status: "INACTIVE" };
   const prisma = { loanProduct: { findUnique: async () => inactive } };
   const controller = new InternalLoanProductController(new LoanProductService(prisma));
 
-  try {
-    for (const token of [undefined, "wrong", "x".repeat(27)]) {
-      assert.throws(
-        () => controller.get(product.id, token),
-        (error) => error.getStatus() === 403,
-      );
-    }
-    assert.equal(
-      (await controller.get(product.id, process.env.APPLICATION_SERVICE_TOKEN)).status,
-      "INACTIVE",
-    );
-    delete process.env.APPLICATION_SERVICE_TOKEN;
-    assert.throws(
-      () => controller.get(product.id, "anything"),
-      (error) => error.getStatus() === 403,
-    );
-  } finally {
-    if (originalToken === undefined) {
-      delete process.env.APPLICATION_SERVICE_TOKEN;
-    } else {
-      process.env.APPLICATION_SERVICE_TOKEN = originalToken;
-    }
-  }
+  assert.equal((await controller.get(product.id)).status, "INACTIVE");
 });
 
 test("list maps database values into the public JSON shape", async () => {

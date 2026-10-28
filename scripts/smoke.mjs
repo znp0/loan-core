@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { once } from "node:events";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
+import { createTestCredentials, testDatabases, testDatabaseUrl } from "./test-environment.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const children = [];
+const runtime = await mkdtemp(resolve(tmpdir(), "loan-core-smoke-"));
+const credentials = createTestCredentials();
 
 async function availablePort() {
   const server = createServer();
@@ -39,14 +43,19 @@ async function checkService(directory) {
   const manifest = await readFile(resolve(cwd, "package.json"), "utf8");
   const { name } = JSON.parse(manifest);
   const port = await availablePort();
+  const database = testDatabases.find((service) => service.app === directory);
 
-  const child = spawn(process.execPath, ["dist/main.js"], {
-    cwd,
+  const child = spawn(process.execPath, [resolve(cwd, "dist/main.js")], {
+    cwd: runtime,
     env: {
-      ...process.env,
+      PATH: process.env.PATH,
+      NODE_ENV: "test",
       HOST: "127.0.0.1",
       PORT: String(port),
-      JWT_SECRET: randomBytes(32).toString("hex"),
+      ...credentials,
+      ...(database
+        ? { DATABASE_URL: testDatabaseUrl(database, process.env.SMOKE_POSTGRES_PORT) }
+        : {}),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -141,4 +150,6 @@ try {
       }
     }),
   );
+
+  await rm(runtime, { recursive: true, force: true });
 }
