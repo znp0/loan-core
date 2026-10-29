@@ -6,6 +6,8 @@ import { loadEnvFile } from "node:process";
 import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 
+import { setupApiDocumentation } from "@repo/http";
+
 import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
@@ -25,6 +27,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix("api/v1");
+  setupApiDocumentation(app, "repayment-service");
   app.enableShutdownHooks();
 
   await app.listen(port, host);

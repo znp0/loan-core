@@ -26,7 +26,8 @@
     "db:validate": "turbo run db:validate",
     "secrets:setup": "doppler setup --no-interactive",
     "secrets:pull": "node scripts/pull-env.mjs",
-    "test:workflow": "pnpm build && node scripts/test-workflow.mjs"
+    "test:workflow": "pnpm build && node scripts/test-workflow.mjs",
+    "test:openapi": "pnpm build && node scripts/test-openapi.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -38,7 +39,9 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "husky": "9.1.7",
-    "lint-staged": "17.6.0"
+    "lint-staged": "17.6.0",
+    "@apidevtools/swagger-parser": "13.1.0",
+    "ajv": "8.20.0"
   },
   "license": "MIT"
 }

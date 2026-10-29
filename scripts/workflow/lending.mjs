@@ -1,8 +1,22 @@
 import assert from "node:assert/strict";
 import { createHmac, randomInt, randomUUID } from "node:crypto";
 
+import SwaggerParser from "@apidevtools/swagger-parser";
+import Ajv from "ajv";
+
 export async function verifyLending({ bases, credentials, databases }) {
   const [identity, products, applications, repayment] = bases.map((base) => `${base}/api/v1`);
+  const documents = new Map();
+  const validator = new Ajv({ strict: false, validateFormats: false });
+
+  for (const base of [identity, products, applications, repayment]) {
+    const response = await fetch(`${base.replace("/api/v1", "")}/api/openapi.json`);
+
+    assert.equal(response.status, 200);
+    const document = await SwaggerParser.dereference(await response.json());
+
+    documents.set(base, document);
+  }
   const { serviceRequire } = await import("./environment.mjs");
   const require = serviceRequire("loan-product-service");
   const { PrismaClient } = require("./dist/generated/prisma/client.js");
@@ -52,6 +66,24 @@ export async function verifyLending({ bases, credentials, databases }) {
     const result = await response.json();
 
     assert.equal(response.status, status, `${method} ${path}: ${JSON.stringify(result)}`);
+    const document = documents.get(base);
+    const route = Object.keys(document.paths).find((candidate) => {
+      const pattern = new RegExp(`^${candidate.replace(/\{[^}]+\}/g, "[^/]+")}$`);
+
+      return pattern.test(`/api/v1${path.split("?")[0]}`);
+    });
+    const schema =
+      document.paths[route]?.[method.toLowerCase()]?.responses[status]?.content?.[
+        "application/json"
+      ]?.schema;
+
+    assert.ok(schema, `${method} ${path} response must be documented`);
+    const validate = validator.compile(schema);
+
+    assert.ok(
+      validate(result),
+      `${method} ${path} disagrees with OpenAPI: ${JSON.stringify(validate.errors)}`,
+    );
 
     return { body: result, response };
   }

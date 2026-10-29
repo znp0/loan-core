@@ -34,3 +34,5 @@ jobs:
       - run: pnpm check-types
       - run: pnpm db:validate
       - run: pnpm build
+      - name: Validate OpenAPI without a database
+        run: node scripts/test-openapi.mjs
