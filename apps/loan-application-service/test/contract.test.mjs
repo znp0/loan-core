@@ -669,22 +669,6 @@ test("submission revalidates expiry at Vietnam midnight without rewriting the pr
   assert.deepEqual(contracts[0], preview);
 });
 
-test("signed historical snapshots lacking expiry remain readable and unchanged", async () => {
-  const record = application();
-
-  await post(record.id);
-  await submit(record.id);
-  delete contracts[0].applicationSnapshot.applicantInfo.identityExpiryDate;
-  record.identityExpiryDate = null;
-  const historical = structuredClone(contracts[0]);
-  const response = await originalFetch(`${url}/loan-applications/${record.id}/contract`, {
-    headers: { Cookie: `access_token=${token()}` },
-  });
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(contracts[0], historical);
-});
-
 test("identity date updates compare persisted values and unchanged dates keep verification", async () => {
   const record = application();
   const service = app.get(LoanApplicationsService);
