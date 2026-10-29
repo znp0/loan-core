@@ -58,6 +58,7 @@ export function buildContractSchedule(
   const items: ContractScheduleItem[] = [];
 
   for (let installmentNumber = 1; installmentNumber <= termMonths; installmentNumber++) {
+    // The final installment absorbs the division remainder so scheduled principal equals the loan amount.
     const principal = installmentNumber === termMonths ? openingPrincipal : regularPrincipal;
     const interest =
       (openingPrincipal * rate + MONTHLY_RATE_DENOMINATOR / 2n) / MONTHLY_RATE_DENOMINATOR;

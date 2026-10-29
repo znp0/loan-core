@@ -33,6 +33,7 @@ export class StaffLoanApplicationsService {
       ? contract.productSnapshot
       : await this.products.getById(application.productId);
 
+    // Income and the projected schedule support a staff affordability decision; no automatic approval is inferred.
     return {
       application: applicationResponse(application),
       productTerms,

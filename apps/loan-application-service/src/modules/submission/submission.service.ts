@@ -23,6 +23,7 @@ export class SubmissionService {
   async submit(applicationId: string, customerId: string, contractVersion: number) {
     return this.prisma.$transaction(
       async (transaction) => {
+        // Edits and signing share this lock so readiness and the signed snapshot use the same application state.
         const [application] = await transaction.$queryRaw<{ customerId: string; status: string }[]>`
         SELECT customer_id AS "customerId", status
         FROM loan_applications WHERE id = ${applicationId}::uuid FOR UPDATE
