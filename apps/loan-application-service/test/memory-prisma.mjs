@@ -56,6 +56,7 @@ export function memoryPrisma() {
           "dateOfBirth",
           "identityNumber",
           "identityIssuedDate",
+          "identityExpiryDate",
           "email",
           "phone",
           "addressLine",

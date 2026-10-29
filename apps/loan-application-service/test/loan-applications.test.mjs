@@ -55,6 +55,7 @@ const updateInput = (extra = {}) => ({
     dateOfBirth: "1990-01-02",
     identityNumber: "123456789012",
     identityIssuedDate: "2020-01-01",
+    identityExpiryDate: "2090-01-01",
     email: "borrower@example.com",
     phone: "0900000000",
   },
@@ -361,6 +362,18 @@ test("loan application HTTP contract", async (t) => {
           updateInput({ applicantInfo: null }),
           updateInput({
             applicantInfo: { ...updateInput().applicantInfo, dateOfBirth: "2026-02-30" },
+          }),
+          updateInput({
+            applicantInfo: { ...updateInput().applicantInfo, identityExpiryDate: "2025-02-29" },
+          }),
+          updateInput({
+            applicantInfo: { ...updateInput().applicantInfo, identityExpiryDate: "2019-12-31" },
+          }),
+          updateInput({
+            applicantInfo: {
+              ...updateInput().applicantInfo,
+              identityExpiryDate: "2030-01-01T00:00:00Z",
+            },
           }),
           updateInput({ financialInfo: { monthlyIncome: -1, otherMonthlyIncome: 0 } }),
         ]) {

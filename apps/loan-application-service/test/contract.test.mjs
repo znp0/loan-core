@@ -153,6 +153,7 @@ function application(overrides = {}) {
     dateOfBirth: new Date("1990-01-31T00:00:00.000Z"),
     identityNumber: "012345678901",
     identityIssuedDate: new Date("2020-01-01T00:00:00.000Z"),
+    identityExpiryDate: new Date("2090-01-01T00:00:00.000Z"),
     email: "borrower@example.com",
     phone: "0912345678",
     addressLine: "1 Main Street",
@@ -487,7 +488,12 @@ async function submit(
 
 test("editing verified identity fields invalidates the attempt before a new preview", async () => {
   const service = app.get(LoanApplicationsService);
-  for (const applicantInfo of [{ identityNumber: "999999999999" }, { dateOfBirth: "1991-01-31" }]) {
+  for (const applicantInfo of [
+    { identityNumber: "999999999999" },
+    { dateOfBirth: "1991-01-31" },
+    { identityIssuedDate: "2021-01-01" },
+    { identityExpiryDate: "2091-01-01" },
+  ]) {
     const record = application();
     await service.update(customerId, record.id, { applicantInfo });
     assert.ok(record.identityVerifications[0].invalidatedAt instanceof Date);
@@ -638,4 +644,65 @@ test("submit rejects changed documents and verification even when validation sti
   assert.equal((await submit(record.id)).status, 409);
   assert.equal(record.status, "DRAFT");
   assert.equal(contracts[0].contentHash, null);
+});
+
+test("contract generation rejects missing or expired IDs without creating snapshots", async () => {
+  for (const identityExpiryDate of [null, new Date("2000-01-01")]) {
+    const record = application({ identityExpiryDate });
+
+    assert.equal((await post(record.id)).status, 422);
+    assert.equal(contracts.length, 0);
+  }
+});
+
+test("submission revalidates expiry at Vietnam midnight without rewriting the preview", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-28T16:59:59.999Z") });
+  const record = application({ identityExpiryDate: new Date("2026-10-28") });
+
+  assert.equal((await post(record.id)).status, 201);
+  assert.equal(contracts[0].applicationSnapshot.applicantInfo.identityExpiryDate, "2026-10-28");
+  const preview = structuredClone(contracts[0]);
+
+  t.mock.timers.setTime(new Date("2026-10-28T17:00:00.000Z").getTime());
+  assert.equal((await submit(record.id)).status, 422);
+  assert.equal(record.status, "DRAFT");
+  assert.deepEqual(contracts[0], preview);
+});
+
+test("signed historical snapshots lacking expiry remain readable and unchanged", async () => {
+  const record = application();
+
+  await post(record.id);
+  await submit(record.id);
+  delete contracts[0].applicationSnapshot.applicantInfo.identityExpiryDate;
+  record.identityExpiryDate = null;
+  const historical = structuredClone(contracts[0]);
+  const response = await originalFetch(`${url}/loan-applications/${record.id}/contract`, {
+    headers: { Cookie: `access_token=${token()}` },
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(contracts[0], historical);
+});
+
+test("identity date updates compare persisted values and unchanged dates keep verification", async () => {
+  const record = application();
+  const service = app.get(LoanApplicationsService);
+
+  await service.update(customerId, record.id, {
+    applicantInfo: { identityExpiryDate: "2090-01-01" },
+  });
+  assert.equal(record.identityVerifications[0].invalidatedAt, null);
+
+  for (const applicantInfo of [
+    { identityExpiryDate: "2019-12-31" },
+    { identityIssuedDate: "2091-01-01" },
+  ]) {
+    await assert.rejects(
+      service.update(customerId, record.id, { applicantInfo }),
+      (error) => error.getResponse().code === "VALIDATION_ERROR",
+    );
+    assert.equal(record.identityVerifications[0].invalidatedAt, null);
+    assert.equal(record.identityExpiryDate.toISOString().slice(0, 10), "2090-01-01");
+  }
 });

@@ -92,6 +92,7 @@ function application(overrides = {}) {
     dateOfBirth: new Date("1990-01-31T00:00:00.000Z"),
     identityNumber: "012345678901",
     identityIssuedDate: new Date("2020-01-01T00:00:00.000Z"),
+    identityExpiryDate: new Date("2090-01-01T00:00:00.000Z"),
     email: "borrower@example.com",
     phone: "0912345678",
     addressLine: "1 Main Street",
@@ -215,7 +216,7 @@ test("complete application passes every check using inactive product terms", asy
   assert.equal(response.status, 200);
   const result = await response.json();
   assert.equal(result.valid, true);
-  assert.equal(result.checks.length, 13);
+  assert.equal(result.checks.length, 14);
   assert.ok(result.checks.every((item) => item.status === "PASSED"));
   assert.ok(!Number.isNaN(Date.parse(result.checkedAt)));
 });
@@ -250,7 +251,7 @@ test("business failures return every check with valid false and no writes", asyn
   assert.equal(response.status, 200);
   const result = await response.json();
   assert.equal(result.valid, false);
-  assert.equal(result.checks.length, 13);
+  assert.equal(result.checks.length, 14);
   const failed = result.checks.filter((item) => item.status === "FAILED").map((item) => item.code);
   for (const code of [
     "REQUIRED_APPLICATION",
@@ -277,7 +278,7 @@ test("missing product fails product dependent checks but keeps the full response
   assert.equal(response.status, 200);
   const result = await response.json();
   assert.equal(result.valid, false);
-  assert.equal(result.checks.length, 13);
+  assert.equal(result.checks.length, 14);
   for (const code of ["AGE", "AMOUNT", "TERM", "REQUIRED_DOCUMENTS"]) {
     assert.equal(result.checks.find((item) => item.code === code).status, "FAILED");
   }
@@ -394,4 +395,42 @@ test("validation enforces authentication, ownership and UUID syntax", async () =
   assert.equal((await get(record.id, { cookie: token({ sub: randomUUID() }) })).status, 403);
   assert.equal((await get(randomUUID())).status, 404);
   assert.equal((await get("not-a-uuid")).status, 400);
+});
+
+test("identity expiry follows yesterday/today/tomorrow in Vietnam, including midnight", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-28T16:59:59.999Z") });
+
+  for (const [date, expected] of [
+    ["2026-10-27", "FAILED"],
+    ["2026-10-28", "PASSED"],
+    ["2026-10-29", "PASSED"],
+  ]) {
+    const record = application({ identityExpiryDate: new Date(date) });
+    const result = await validationService.validate(record.id, customerId);
+
+    assert.equal(result.checks.find((check) => check.code === "IDENTITY_EXPIRY").status, expected);
+    applications.clear();
+  }
+
+  const record = application({ identityExpiryDate: new Date("2026-10-28") });
+  t.mock.timers.setTime(new Date("2026-10-28T17:00:00.000Z").getTime());
+  const result = await validationService.validate(record.id, customerId);
+
+  assert.equal(result.checks.find((check) => check.code === "IDENTITY_EXPIRY").status, "FAILED");
+});
+
+test("readiness rejects missing, invalid and reversed identity dates", async () => {
+  for (const dates of [
+    { identityExpiryDate: null },
+    { identityIssuedDate: null },
+    { identityExpiryDate: new Date("invalid") },
+    { identityIssuedDate: new Date("2091-01-01") },
+  ]) {
+    const record = application(dates);
+    const result = await validationService.validate(record.id, customerId);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.checks.find((check) => check.code === "IDENTITY_EXPIRY").status, "FAILED");
+    applications.clear();
+  }
 });

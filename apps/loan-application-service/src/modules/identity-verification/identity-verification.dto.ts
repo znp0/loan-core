@@ -15,4 +15,9 @@ export class IdentityVerificationDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   @IsISO8601({ strict: true, strictSeparator: true })
   dateOfBirth!: string;
+
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsISO8601({ strict: true, strictSeparator: true })
+  identityExpiryDate!: string;
 }

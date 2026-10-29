@@ -67,6 +67,7 @@ model LoanApplication {
   dateOfBirth               DateTime?              @map("date_of_birth") @db.Date
   identityNumber            String?                @map("identity_number")
   identityIssuedDate        DateTime?              @map("identity_issued_date") @db.Date
+  identityExpiryDate        DateTime?              @map("identity_expiry_date") @db.Date
   email                     String?
   phone                     String?
   addressLine               String?                @map("address_line")
