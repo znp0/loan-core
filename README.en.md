@@ -8,8 +8,6 @@ Requires Node.js 24.15.0+ (24 LTS) or Node.js 26+, pnpm 11.25.0, and a separate 
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm secrets:setup
-pnpm secrets:pull
 pnpm db:generate
 pnpm --filter identity-service db:deploy
 pnpm --filter loan-product-service db:deploy
@@ -17,6 +15,8 @@ pnpm --filter loan-application-service db:deploy
 pnpm --filter repayment-service db:deploy
 pnpm dev
 ```
+
+Configure each service using its `.env.example` before starting.
 
 Start one service with `pnpm --filter identity-service dev`.
 

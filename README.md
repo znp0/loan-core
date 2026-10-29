@@ -2,20 +2,30 @@
 
 Backend quản lý hồ sơ vay, hợp đồng, giải ngân và trả nợ, xây dựng bằng NestJS, TypeScript, pnpm và Turborepo. [English](README.en.md).
 
+## Bài toán và phạm vi
+
+Loan Core hỗ trợ khách hàng cá nhân lựa chọn sản phẩm vay, cung cấp thông tin và tài liệu, xem hợp đồng, theo dõi giải ngân và trả nợ. Nhân viên xem hồ sơ cùng thu nhập khai báo và lịch trả nợ dự kiến để đánh giá khả năng chi trả, sau đó phê duyệt hoặc từ chối.
+
+Luồng nghiệp vụ hiện có: đăng ký/đăng nhập → chọn sản phẩm → tạo và hoàn thiện hồ sơ → xác minh thông tin → tạo hợp đồng → khách hàng xác nhận và nộp → nhân viên xét duyệt → giải ngân → thanh toán các kỳ đến hạn → tất toán → có thể tạo hồ sơ vay mới. Hệ thống kiểm tra tính đầy đủ, điều kiện sản phẩm và khoản vay đang hoạt động ở các bước phù hợp.
+
+Khách hàng chỉ thanh toán toàn bộ số tiền còn thiếu của kỳ chưa trả sớm nhất khi kỳ đó đến hạn. Số tiền được biểu diễn bằng số nguyên VND; ngày hết hạn căn cước và ngày đến hạn trả nợ được xét theo múi giờ Việt Nam. Hợp đồng lưu snapshot dữ liệu đã chốt; giải ngân và thanh toán dùng khóa idempotency để xử lý yêu cầu lặp lại.
+
+Các kết nối định danh, ký và chuyển tiền trong phạm vi hiện tại chưa kết nối dịch vụ thực tế. Chưa có đăng nhập nhân viên, trả một phần, trả trước hạn, tính phí phạt, tự động chuyển quá hạn hoặc đối soát tự động. Danh sách API đã triển khai và schema được cung cấp qua OpenAPI của từng service.
+
 ## Yêu cầu
 
-Node.js 24.15.0 trở lên thuộc nhánh 24 LTS hoặc Node.js 26+, pnpm 11.25.0 và PostgreSQL. Mỗi service sở hữu một database riêng. Cấu hình phát triển của nhóm được quản lý bằng Doppler; cần quyền truy cập workspace `v2t`, project `loan-core`.
+Node.js 24.15.0 trở lên thuộc nhánh 24 LTS hoặc Node.js 26+, pnpm 11.25.0 và PostgreSQL. Mỗi service sở hữu một database riêng.
 
 ## Kiến trúc
 
-| Service           | Cổng | Trách nhiệm                                             |
+| Service           | Port | Trách nhiệm                                             |
 | ----------------- | ---- | ------------------------------------------------------- |
 | Identity          | 3001 | Đăng ký, đăng nhập khách hàng và cookie xác thực        |
 | Loan products     | 3002 | Sản phẩm, giới hạn và điều kiện vay                     |
 | Loan applications | 3003 | Hồ sơ, tài liệu, xác minh, hợp đồng, duyệt và giải ngân |
 | Repayment         | 3004 | Khoản vay, lịch trả nợ, thanh toán và đóng khoản vay    |
 
-Client gọi trực tiếp từng service. Các service trao đổi qua HTTP khi cần dữ liệu của domain khác. Nhân viên đánh giá khả năng chi trả dựa trên thu nhập khai báo và lịch trả nợ dự kiến.
+Client gọi trực tiếp từng service; không có API gateway. Application service gọi product service để lấy điều kiện sản phẩm và repayment service để kiểm tra khoản vay hoặc tạo khoản vay sau giải ngân. Mỗi service sở hữu PostgreSQL và Prisma client riêng. `@repo/http` và `@repo/auth` cung cấp hạ tầng HTTP và xác thực dùng chung.
 
 Mỗi service cung cấp health tại `/api/v1/health`, Swagger UI tại `/api/docs` và OpenAPI JSON tại `/api/openapi.json`. API nội bộ của products và repayment có tài liệu riêng tại `/api/internal/docs` và `/api/internal/openapi.json`.
 
@@ -23,8 +33,6 @@ Mỗi service cung cấp health tại `/api/v1/health`, Swagger UI tại `/api/d
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm secrets:setup
-pnpm secrets:pull
 pnpm db:generate
 pnpm --filter identity-service db:deploy
 pnpm --filter loan-product-service db:deploy
@@ -33,7 +41,7 @@ pnpm --filter repayment-service db:deploy
 pnpm dev
 ```
 
-Nếu tự cấu hình, dùng `.env.example` của từng app làm mẫu cho `.env`, điền database riêng và các khóa xác thực phù hợp. Các service xác minh cùng JWT phải dùng chung `JWT_SECRET`; internal token của bên gọi phải khớp bên nhận. Prisma CLI ưu tiên `DIRECT_URL` nếu có, sau đó dùng `DATABASE_URL`.
+Dùng `.env.example` của từng app làm mẫu cho `.env`, điền database riêng và các secrets phù hợp. Các service xác minh cùng JWT phải dùng chung `JWT_SECRET`; internal token của bên gọi phải khớp bên nhận. Prisma CLI ưu tiên `DIRECT_URL` cho migrations, nếu không có thì dùng `DATABASE_URL`.
 
 Chạy một service bằng `pnpm --filter identity-service dev`.
 
@@ -49,7 +57,7 @@ pnpm test
 pnpm test:openapi
 ```
 
-`pnpm test` chạy toàn bộ test bằng môi trường Docker Compose dùng chung cho local và CI, cố định Node 24.15.0, pnpm 11.25.0 và PostgreSQL 17.11. Bộ test tự chuẩn bị database/role riêng và dọn sau khi chạy; không cần PostgreSQL, `.env` hay Doppler trên máy host.
+`pnpm test` chạy toàn bộ test bằng môi trường Docker Compose dùng chung cho local và CI, cố định Node 24.15.0, pnpm 11.25.0 và PostgreSQL 17.11. Bộ test tự chuẩn bị database/role riêng và dọn sau khi chạy; không cần PostgreSQL hay `.env` trên máy host.
 
 ```sh
 pnpm test:services
@@ -70,7 +78,7 @@ Lệnh `pnpm test` tự thực hiện cả bước chạy và dọn Compose tron
 
 ## Docker
 
-Cần Docker Engine, Compose và Buildx. Mỗi service nạp `.env` riêng lúc chạy.
+Cần Docker Engine, Compose và Buildx. Mỗi service nạp `.env` riêng lúc chạy. Dockerfile build ứng dụng thành image runtime với dependency production; container khởi động service. Bộ test dùng Compose và build target riêng, được chạy bằng các lệnh test ở trên.
 
 ```sh
 pnpm docker:up
@@ -95,7 +103,3 @@ pnpm docker:down
 | `Idempotency-Key` | Khóa giúp retry một thao tác mà không ghi nhận giao dịch trùng |
 
 Các khoản tiền dùng số nguyên VND. Thanh toán phải trả toàn bộ số còn lại của kỳ chưa trả sớm nhất và kỳ đó phải đến hạn.
-
-## Giấy phép
-
-[MIT](LICENSE).
