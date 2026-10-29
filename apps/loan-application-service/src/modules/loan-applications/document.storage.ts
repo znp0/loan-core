@@ -55,7 +55,7 @@ export class DocumentStorage {
         "code" in error &&
         error.code === "ENOENT"
       )) {
-        this.logger.error("Failed to clean up an unreferenced application document");
+        this.logger.error(`Failed to clean up an unreferenced application document (${key}).`);
       }
     }
   }

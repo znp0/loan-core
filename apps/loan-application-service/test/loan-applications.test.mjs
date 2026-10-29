@@ -546,7 +546,7 @@ test("loan application HTTP contract", async (t) => {
       },
     );
     await t.test(
-      "rolls back failed metadata writes while retaining uploaded files, including ambiguous commits",
+      "cleans up confirmed metadata rollback and retains files after ambiguous commits",
       { skip: Boolean(databaseUrl) },
       async () => {
         const { auth, application } = await create();
@@ -565,8 +565,7 @@ test("loan application HTTP contract", async (t) => {
             500,
             "INTERNAL_SERVER_ERROR",
           );
-          // The current service retains the unreferenced upload after rollback.
-          assert.equal((await readdir(join(storageRoot, application.id))).length, 2);
+          assert.equal((await readdir(join(storageRoot, application.id))).length, 1);
           const history = await prisma.applicationDocument.findMany({
             where: { applicationId: application.id },
           });
@@ -590,7 +589,7 @@ test("loan application HTTP contract", async (t) => {
             500,
             "INTERNAL_SERVER_ERROR",
           );
-          assert.equal((await readdir(join(storageRoot, application.id))).length, 3);
+          assert.equal((await readdir(join(storageRoot, application.id))).length, 2);
           const history = await prisma.applicationDocument.findMany({
             where: { applicationId: application.id },
           });

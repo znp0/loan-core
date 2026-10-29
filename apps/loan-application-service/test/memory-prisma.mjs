@@ -122,7 +122,13 @@ export function memoryPrisma() {
     },
     applicationDocument: {
       async findUnique({ where }) {
-        return documents.find((row) => row.id === where.id) ?? null;
+        return (
+          documents.find((row) =>
+            where.storageKey === undefined
+              ? row.id === where.id
+              : row.storageKey === where.storageKey,
+          ) ?? null
+        );
       },
       async findMany({ where }) {
         return documents.filter((row) => row.applicationId === where.applicationId);
