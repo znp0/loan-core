@@ -114,6 +114,7 @@ export class PaymentsService {
       });
 
       if (unpaid === 0) {
+        // Eligibility can observe CLOSED only after the final payment and balances commit together.
         await tx.loan.update({
           where: { id: loanId },
           data: { status: "CLOSED", closedAt: paidAt },

@@ -8,6 +8,7 @@ function date(value: Date | null): string | null {
 
 export function buildContractSnapshots(evaluation: Evaluation) {
   const { application } = evaluation;
+  // Signing binds these application and product values to the contract, independently of later edits.
   const applicationSnapshot = {
     id: application.id,
     applicationNumber: application.applicationNumber,
