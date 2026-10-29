@@ -57,6 +57,10 @@ export class DisbursementActionService {
         where: { id: prepared.input.contractId },
         data: { status: "EFFECTIVE" },
       });
+      await tx.loanApplication.update({
+        where: { id: applicationId },
+        data: { status: "DISBURSED" },
+      });
       const result = disbursementResponse(completed);
 
       await tx.disbursementOperation.updateMany({
@@ -73,7 +77,7 @@ export class DisbursementActionService {
       async (tx) => {
         const application = await this.lockApplication(tx, applicationId);
 
-        if (application.status !== "APPROVED") {
+        if (application.status !== "APPROVED" && application.status !== "DISBURSED") {
           throw new AppException(
             409,
             "DISBURSEMENT_NOT_READY",
@@ -105,6 +109,14 @@ export class DisbursementActionService {
           where: { applicationId },
           include: includeAttempts,
         });
+
+        if (application.status === "DISBURSED" && disbursement?.status !== "SUCCEEDED") {
+          throw new AppException(
+            409,
+            "DISBURSEMENT_STATE_CONFLICT",
+            "A disbursed application must already have a confirmed disbursement.",
+          );
+        }
 
         if (!disbursement) {
           disbursement = await tx.disbursement.create({
@@ -139,7 +151,11 @@ export class DisbursementActionService {
           );
         }
 
-        if (operation?.result !== null && operation?.result !== undefined) {
+        if (
+          operation?.result !== null &&
+          operation?.result !== undefined &&
+          (disbursement.status !== "SUCCEEDED" || application.status === "DISBURSED")
+        ) {
           return { result: operation.result };
         }
 
@@ -149,7 +165,7 @@ export class DisbursementActionService {
           });
         }
 
-        if (disbursement.status === "SUCCEEDED") {
+        if (disbursement.status === "SUCCEEDED" && application.status === "DISBURSED") {
           const result = disbursementResponse(disbursement);
 
           await tx.disbursementOperation.update({

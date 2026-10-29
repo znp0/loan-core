@@ -12,6 +12,7 @@ enum ApplicationStatus {
   DRAFT
   SUBMITTED
   APPROVED
+  DISBURSED
   REJECTED
   WITHDRAWN
 }

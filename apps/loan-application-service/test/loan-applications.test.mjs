@@ -18,6 +18,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { AppModule } from "../dist/app.module.js";
 import { PrismaClient } from "../dist/generated/prisma/client.js";
 import { PrismaService } from "../dist/modules/prisma/prisma.service.js";
+import { RepaymentEligibilityClient } from "../dist/modules/repayment-eligibility/repayment-eligibility.client.js";
 import { memoryPrisma } from "./memory-prisma.mjs";
 
 async function availablePort() {
@@ -137,6 +138,12 @@ test("loan application HTTP contract", async (t) => {
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(PrismaService)
     .useValue(prisma)
+    .overrideProvider(RepaymentEligibilityClient)
+    .useValue({
+      async hasActiveLoan() {
+        return false;
+      },
+    })
     .compile();
   const app = module.createNestApplication({ logger: false });
 
