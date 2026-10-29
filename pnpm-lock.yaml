@@ -42,49 +42,6 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  apps/api-gateway:
-    dependencies:
-      '@nestjs/common':
-        specifier: 12.0.2
-        version: 12.0.2(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/core':
-        specifier: 12.0.2
-        version: 12.0.2(@nestjs/common@12.0.2(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@12.0.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/platform-express':
-        specifier: 12.0.2
-        version: 12.0.2(@nestjs/common@12.0.2(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2)(supports-color@8.1.1)
-      '@repo/http':
-        specifier: workspace:*
-        version: link:../../packages/http
-      reflect-metadata:
-        specifier: 0.2.2
-        version: 0.2.2
-      rxjs:
-        specifier: 7.8.2
-        version: 7.8.2
-    devDependencies:
-      '@nestjs/cli':
-        specifier: 12.0.1
-        version: 12.0.1(@swc/core@1.15.18)(@types/node@22.15.3)(fork-ts-checker-webpack-plugin@9.1.0(typescript@7.0.2)(webpack@5.111.0(@swc/core@1.15.18)))(prettier@3.9.6)(tsconfig-paths-webpack-plugin@4.2.0)(webpack-node-externals@3.0.0)(webpack@5.111.0(@swc/core@1.15.18))
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../../packages/eslint-config
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../../packages/typescript-config
-      '@types/node':
-        specifier: 22.15.3
-        version: 22.15.3
-      concurrently:
-        specifier: 9.2.1
-        version: 9.2.1
-      eslint:
-        specifier: 10.9.1
-        version: 10.9.1(jiti@2.6.1)(supports-color@8.1.1)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-
   apps/identity-service:
     dependencies:
       '@nestjs/common':

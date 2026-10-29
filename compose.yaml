@@ -9,17 +9,6 @@ x-service-defaults: &service-defaults
   stop_grace_period: 10s
 
 services:
-  api-gateway:
-    <<: *service-defaults
-    image: loan-core/api-gateway:local
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      args:
-        SERVICE: api-gateway
-    ports:
-      - "127.0.0.1:3000:3000"
-
   identity-service:
     <<: *service-defaults
     env_file:
