@@ -47,6 +47,7 @@ export class LoanApplicationsService {
     const application = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${customerId}, 0))::text`;
       await this.eligibility.assertNoActiveApplication(tx, customerId);
+      await this.eligibility.assertNoActiveLoan(customerId);
 
       return tx.loanApplication.create({
         data: {

@@ -9,6 +9,7 @@ import {
 import { IdentityVerificationStatus, VerificationStatus } from "../../generated/prisma/enums";
 import { REQUIRED_CONTACT_COUNT } from "../loan-applications/loan-applications.constants";
 import { PrismaService } from "../prisma/prisma.service";
+import { RepaymentEligibilityClient } from "../repayment-eligibility/repayment-eligibility.client";
 
 type ProductTerms = {
   id: string;
@@ -73,7 +74,10 @@ function isProductTerms(value: unknown, productId: string): value is ProductTerm
 
 @Injectable()
 export class ValidationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly repayment: RepaymentEligibilityClient,
+  ) {}
 
   async validate(applicationId: string, customerId: string) {
     const evaluation = await this.evaluate(applicationId, customerId);
@@ -105,7 +109,7 @@ export class ValidationService {
 
     const [product, hasActiveLoan, activeApplications] = await Promise.all([
       this.productTerms(application.productId),
-      this.activeLoan(customerId),
+      this.repayment.hasActiveLoan(customerId),
       database.loanApplication.count({
         where: {
           customerId,
@@ -379,49 +383,6 @@ export class ValidationService {
       const value: unknown = await response.json();
       if (isProductTerms(value, productId)) {
         return value;
-      }
-    } catch {
-      throw new DependencyUnavailableException();
-    }
-
-    throw new DependencyUnavailableException();
-  }
-
-  private async activeLoan(customerId: string): Promise<boolean> {
-    const base = process.env.REPAYMENT_SERVICE_URL;
-    const token = process.env.REPAYMENT_INTERNAL_TOKEN;
-
-    if (!base || !token) {
-      throw new DependencyUnavailableException();
-    }
-
-    let response: Response;
-
-    try {
-      response = await fetch(
-        `${base.replace(/\/$/, "")}/api/v1/internal/customers/${customerId}/active-loan`,
-        {
-          headers: { "X-Internal-Service-Token": token },
-          signal: AbortSignal.timeout(3000),
-        },
-      );
-    } catch {
-      throw new DependencyUnavailableException();
-    }
-
-    if (!response.ok) {
-      throw new DependencyUnavailableException();
-    }
-
-    try {
-      const value: unknown = await response.json();
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        "hasActiveLoan" in value &&
-        typeof value.hasActiveLoan === "boolean"
-      ) {
-        return value.hasActiveLoan;
       }
     } catch {
       throw new DependencyUnavailableException();

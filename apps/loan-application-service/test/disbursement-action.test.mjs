@@ -22,6 +22,7 @@ import { DisbursementActionService } from "../dist/modules/disbursement/disburse
 import { RepaymentLoanClient } from "../dist/modules/disbursement/repayment-loan.client.js";
 import { SimulatedTransferProvider } from "../dist/modules/disbursement/simulated-transfer.provider.js";
 import { PrismaService } from "../dist/modules/prisma/prisma.service.js";
+import { LoanProductClient } from "../dist/modules/loan-applications/loan-product.client.js";
 import { contractContentHash } from "../dist/modules/submission/contract-content.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -198,12 +199,12 @@ test(
           }
 
           const upstream = await fetch(`${repaymentBase}${request.url}`, {
-            method: "POST",
+            method: request.method,
             headers: {
               "Content-Type": "application/json",
               "X-Internal-Service-Token": internalToken,
             },
-            body: Buffer.concat(chunks),
+            body: request.method === "GET" ? undefined : Buffer.concat(chunks),
           });
           const body = await upstream.text();
 
@@ -227,6 +228,19 @@ test(
         .useValue(prisma)
         .overrideProvider(SimulatedTransferProvider)
         .useValue(transfer)
+        .overrideProvider(LoanProductClient)
+        .useValue({
+          async getById(id) {
+            return {
+              id,
+              status: "ACTIVE",
+              minAmount: 1,
+              maxAmount: 1000,
+              allowedTerms: [2],
+              requiredDocumentTypes: [],
+            };
+          },
+        })
         .compile();
 
       app = module.createNestApplication({ logger: false });
@@ -444,6 +458,102 @@ test(
         assert.equal(result.status, 409);
         assert.equal(result.body.code, "IDEMPOTENCY_CONFLICT");
       });
+      await t.test(
+        "borrowing remains blocked until confirmed disbursement and full loan closure",
+        async () => {
+          const { application } = await seed();
+          const key = randomUUID();
+
+          async function borrow() {
+            const response = await fetch(`${base}/api/v1/loan-applications`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Cookie: cookie("CUSTOMER", application.customerId),
+              },
+              body: JSON.stringify({
+                productId: application.productId,
+                requestedAmount: 101,
+                termMonths: 2,
+                purpose: "Repeat borrowing",
+              }),
+            });
+            const body = await response.json();
+
+            if (response.status === 201) {
+              applicationIds.push(body.id);
+            }
+
+            return { status: response.status, body };
+          }
+
+          assert.equal((await borrow()).body.code, "ACTIVE_APPLICATION_EXISTS");
+          proxyMode = "unavailable";
+          assert.equal((await post(application.id, key)).status, 503);
+          assert.equal((await borrow()).body.code, "ACTIVE_APPLICATION_EXISTS");
+          assert.equal(
+            (await prisma.loanApplication.findUnique({ where: { id: application.id } })).status,
+            "APPROVED",
+          );
+          proxyMode = "normal";
+          const disbursement = await post(application.id, key);
+
+          assert.equal(disbursement.body.status, "SUCCEEDED");
+          assert.equal(
+            (await prisma.loanApplication.findUnique({ where: { id: application.id } })).status,
+            "DISBURSED",
+          );
+          assert.equal((await borrow()).body.code, "ACTIVE_LOAN_EXISTS");
+          await repayment.query("UPDATE loans SET status = 'OVERDUE' WHERE id = $1", [
+            disbursement.body.loanId,
+          ]);
+          assert.equal((await borrow()).body.code, "ACTIVE_LOAN_EXISTS");
+
+          const schedule = await (
+            await fetch(
+              `${repaymentBase}/api/v1/loans/${disbursement.body.loanId}/repayment-schedule`,
+              { headers: { Cookie: cookie("CUSTOMER", application.customerId) } },
+            )
+          ).json();
+
+          for (const installment of schedule.items) {
+            const response = await fetch(
+              `${repaymentBase}/api/v1/loans/${disbursement.body.loanId}/payments`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Cookie: cookie("CUSTOMER", application.customerId),
+                  "Idempotency-Key": randomUUID(),
+                },
+                body: JSON.stringify({
+                  installmentId: installment.id,
+                  amount: installment.outstandingAmount,
+                }),
+              },
+            );
+
+            assert.equal(response.status, 200);
+          }
+
+          const closed = await (
+            await fetch(`${repaymentBase}/api/v1/loans/${disbursement.body.loanId}`, {
+              headers: { Cookie: cookie("CUSTOMER", application.customerId) },
+            })
+          ).json();
+
+          assert.equal(closed.status, "CLOSED");
+          assert.equal(closed.outstandingAmount, 0);
+          assert.ok(closed.closedAt);
+          proxyMode = "unavailable";
+          assert.equal((await borrow()).status, 503);
+          proxyMode = "normal";
+          const results = await Promise.all([borrow(), borrow(), borrow()]);
+
+          assert.deepEqual(results.map((result) => result.status).sort(), [201, 409, 409]);
+          assert.deepEqual((await post(application.id, key)).body, disbursement.body);
+        },
+      );
     } finally {
       await app?.close();
       if (proxy) {
@@ -454,6 +564,10 @@ test(
         await exited;
       }
 
+      await repayment.query(
+        "DELETE FROM payments WHERE loan_id IN (SELECT id FROM loans WHERE application_id = ANY($1::uuid[]))",
+        [applicationIds],
+      );
       await repayment.query(
         "DELETE FROM repayment_installments WHERE loan_id IN (SELECT id FROM loans WHERE application_id = ANY($1::uuid[]))",
         [applicationIds],

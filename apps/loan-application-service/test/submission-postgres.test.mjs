@@ -21,6 +21,10 @@ const {
   DisbursementAccountVerificationService,
 } = require("../dist/modules/disbursement-account-verification/disbursement-account-verification.service.js");
 
+const {
+  RepaymentEligibilityClient,
+} = require("../dist/modules/repayment-eligibility/repayment-eligibility.client.js");
+
 const databaseUrl = process.env.TEST_DATABASE_URL;
 function isTestDatabase(value) {
   try {
@@ -72,7 +76,7 @@ test(
       maxAge: 65,
       requiredDocumentTypes: ["ID_FRONT", "ID_BACK"],
     };
-    const validation = new ValidationService(prisma);
+    const validation = new ValidationService(prisma, new RepaymentEligibilityClient());
     let gate;
     const evaluator = {
       async evaluate(...args) {
