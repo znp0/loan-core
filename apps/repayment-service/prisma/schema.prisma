@@ -20,6 +20,9 @@ model Loan {
   applicationId String                 @unique(map: "loans_application_id_key") @map("application_id") @db.Uuid
   customerId    String                 @map("customer_id") @db.Uuid
   status        LoanStatus             @default(ACTIVE)
+  contractId    String?                @map("contract_id") @db.Uuid
+  creationHash  String?                @map("creation_hash")
+  disbursedAt   DateTime?              @map("disbursed_at") @db.Timestamptz(3)
   createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
   installments  RepaymentInstallment[]
