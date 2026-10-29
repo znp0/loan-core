@@ -30,18 +30,18 @@
     "test:openapi": "pnpm build && node scripts/test-openapi.mjs"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/prettier-config": "workspace:*",
-    "eslint": "10.9.1",
-    "prettier": "3.9.6",
-    "turbo": "2.11.10",
-    "typescript": "7.0.2",
+    "@apidevtools/swagger-parser": "13.1.0",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "ajv": "8.20.0",
+    "eslint": "10.9.1",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
-    "@apidevtools/swagger-parser": "13.1.0",
-    "ajv": "8.20.0"
+    "prettier": "3.9.6",
+    "turbo": "2.11.10",
+    "typescript": "7.0.2"
   },
   "license": "MIT"
 }
