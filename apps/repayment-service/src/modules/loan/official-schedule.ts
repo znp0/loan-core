@@ -1,7 +1,7 @@
 import { ValidationException } from "../../common/exceptions/app.exceptions";
 import type { CreateLoanDto } from "./create-loan.dto";
 
-type FrozenInstallment = {
+type InstallmentSnapshot = {
   installmentNumber: number;
   principalAmount: number;
   interestAmount: number;
@@ -9,12 +9,12 @@ type FrozenInstallment = {
 };
 
 export function officialSchedule(input: CreateLoanDto) {
-  const items: FrozenInstallment[] = [];
+  const items: InstallmentSnapshot[] = [];
   let principal = 0n;
   let interest = 0n;
 
   for (const [index, value] of input.schedule.entries()) {
-    const item = value as FrozenInstallment;
+    const item = value as InstallmentSnapshot;
     const fields = ["installmentNumber", "principalAmount", "interestAmount", "totalAmount"];
 
     if (
@@ -54,7 +54,7 @@ export function officialSchedule(input: CreateLoanDto) {
     principal + interest !== BigInt(input.totalPayable)
   ) {
     throw new ValidationException([
-      { field: "schedule", message: "Installment sums must match the frozen contract totals." },
+      { field: "schedule", message: "Installment sums must match the contract snapshot totals." },
     ]);
   }
 

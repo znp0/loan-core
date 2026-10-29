@@ -41,7 +41,7 @@ export class LoanCreationService {
           throw new AppException(
             409,
             "LOAN_INPUT_CONFLICT",
-            "This application already has a loan with different frozen terms.",
+            "This application already has a loan with different contract terms.",
           );
         }
 

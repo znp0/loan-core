@@ -310,6 +310,18 @@ test("an unavailable dependency returns 503 instead of marking the application i
   assert.equal((await repaymentResponse.json()).code, "SERVICE_UNAVAILABLE");
 });
 
+test("invalid repayment response types return 503 instead of permitting borrowing", async () => {
+  const record = application();
+
+  for (const value of ["false", 0, null, undefined]) {
+    hasActiveLoan = value;
+    const response = await get(record.id);
+
+    assert.equal(response.status, 503);
+    assert.equal((await response.json()).code, "SERVICE_UNAVAILABLE");
+  }
+});
+
 test("invalidated latest identity and superseded documents fail without using older records", async () => {
   const record = application({
     identityVerifications: [

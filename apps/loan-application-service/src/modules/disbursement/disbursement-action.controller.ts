@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Headers,
   HttpCode,
@@ -25,28 +24,12 @@ export class DisbursementActionController {
   execute(
     @Param("applicationId", new ParseUUIDPipe()) applicationId: string,
     @Headers("idempotency-key") key: string | undefined,
-    @Body() body: unknown,
   ) {
     if (!key || !/^[A-Za-z0-9._:-]{1,128}$/.test(key)) {
       throw new ValidationException([
         {
           field: "Idempotency-Key",
           message: "Provide 1–128 letters, digits, dots, underscores, colons or hyphens.",
-        },
-      ]);
-    }
-
-    if (
-      body !== undefined &&
-      (typeof body !== "object" ||
-        body === null ||
-        Array.isArray(body) ||
-        Object.keys(body).length > 0)
-    ) {
-      throw new ValidationException([
-        {
-          field: "body",
-          message: "Disbursement takes no body fields; it uses the signed contract.",
         },
       ]);
     }
