@@ -32,7 +32,7 @@ test("official due dates preserve the transfer day across month ends and leap ye
 const databaseUrl = process.env.TEST_DATABASE_URL;
 
 test(
-  "loan creation authenticates, deduplicates and persists frozen schedules atomically",
+  "loan creation authenticates, deduplicates and persists schedule snapshots atomically",
   { skip: !databaseUrl && "Requires a disposable local *_test database" },
   async (t) => {
     const target = new URL(databaseUrl);
@@ -94,7 +94,7 @@ test(
         return { status: response.status, body: await response.json() };
       }
 
-      await t.test("internal token and exact frozen amounts are required", async () => {
+      await t.test("internal token and exact contract amounts are required", async () => {
         const dto = input();
 
         assert.equal((await post(dto, "wrong")).status, 401);

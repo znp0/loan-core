@@ -7,7 +7,7 @@ import { DisbursementService } from "./disbursement.service";
 import { DisbursementActionController } from "./disbursement-action.controller";
 import { DisbursementActionService } from "./disbursement-action.service";
 import { RepaymentLoanClient } from "./repayment-loan.client";
-import { SimulatedTransferProvider } from "./simulated-transfer.provider";
+import { TransferProvider } from "./transfer.provider";
 
 @Module({
   imports: [AccessAuthModule],
@@ -16,7 +16,7 @@ import { SimulatedTransferProvider } from "./simulated-transfer.provider";
     DisbursementService,
     DisbursementActionService,
     RepaymentLoanClient,
-    SimulatedTransferProvider,
+    TransferProvider,
   ],
 })
 export class DisbursementModule {}

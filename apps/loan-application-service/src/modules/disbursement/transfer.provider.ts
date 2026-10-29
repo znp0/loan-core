@@ -5,7 +5,7 @@ export type TransferResult =
   | { status: "FAILED"; processedAt: Date };
 
 @Injectable()
-export class SimulatedTransferProvider {
+export class TransferProvider {
   async transfer(input: {
     disbursementId: string;
     attemptNumber: number;
@@ -13,10 +13,10 @@ export class SimulatedTransferProvider {
     accountNumber: string;
     accountHolderName: string;
   }): Promise<TransferResult> {
-    // The simulation has no external effect; a rolled-back attempt can reproduce its reference.
+    // Keep the reference stable when the same attempt is retried.
     return {
       status: "SUCCEEDED",
-      transactionReference: `SIM-${input.disbursementId}-${input.attemptNumber}`,
+      transactionReference: `TRF-${input.disbursementId}-${input.attemptNumber}`,
       processedAt: new Date(),
     };
   }

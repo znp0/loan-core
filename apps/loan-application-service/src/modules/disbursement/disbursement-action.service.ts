@@ -9,8 +9,8 @@ import { Prisma, type LoanContract } from "../../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { contractContentHash } from "../submission/contract-content";
 import { disbursementResponse } from "./disbursement.response";
-import { RepaymentLoanClient, type FrozenLoanInput } from "./repayment-loan.client";
-import { SimulatedTransferProvider } from "./simulated-transfer.provider";
+import { RepaymentLoanClient, type LoanSnapshot } from "./repayment-loan.client";
+import { TransferProvider } from "./transfer.provider";
 
 const includeAttempts = { attempts: { orderBy: { attemptNumber: "asc" as const } } };
 
@@ -18,7 +18,7 @@ const includeAttempts = { attempts: { orderBy: { attemptNumber: "asc" as const }
 export class DisbursementActionService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly transfers: SimulatedTransferProvider,
+    private readonly transfers: TransferProvider,
     private readonly loans: RepaymentLoanClient,
   ) {}
 
@@ -104,7 +104,7 @@ export class DisbursementActionService {
           );
         }
 
-        const frozen = this.freeze(contract, application.customerId);
+        const snapshot = this.buildLoanSnapshot(contract, application.customerId);
         let disbursement = await tx.disbursement.findUnique({
           where: { applicationId },
           include: includeAttempts,
@@ -123,9 +123,9 @@ export class DisbursementActionService {
             data: {
               applicationId,
               amount: contract.principalAmount,
-              accountNumber: frozen.accountNumber,
-              accountHolderName: frozen.accountHolderName,
-              loanInput: frozen.input,
+              accountNumber: snapshot.accountNumber,
+              accountHolderName: snapshot.accountHolderName,
+              loanInput: snapshot.input,
             },
             include: includeAttempts,
           });
@@ -135,7 +135,7 @@ export class DisbursementActionService {
           throw new AppException(
             409,
             "DISBURSEMENT_STATE_CONFLICT",
-            "The disbursement lacks frozen loan input; investigate its transfer state before retrying.",
+            "The disbursement lacks a loan snapshot; investigate its transfer state before retrying.",
           );
         }
 
@@ -195,10 +195,10 @@ export class DisbursementActionService {
               processedAt: transfer.processedAt,
               transactionReference:
                 transfer.status === "SUCCEEDED" ? transfer.transactionReference : null,
-              failureCode: transfer.status === "FAILED" ? "SIMULATED_TRANSFER_FAILED" : null,
+              failureCode: transfer.status === "FAILED" ? "TRANSFER_FAILED" : null,
               failureMessage:
                 transfer.status === "FAILED"
-                  ? "The simulated transfer failed. Retry with a new Idempotency-Key."
+                  ? "The transfer failed. Retry with a new Idempotency-Key."
                   : null,
             },
           });
@@ -222,7 +222,7 @@ export class DisbursementActionService {
           success = attempt;
         }
 
-        const input = disbursement.loanInput as unknown as FrozenLoanInput;
+        const input = disbursement.loanInput as unknown as LoanSnapshot;
 
         if (
           input.contractId !== contract.id ||
@@ -249,7 +249,7 @@ export class DisbursementActionService {
     return application;
   }
 
-  private freeze(contract: LoanContract, customerId: string) {
+  private buildLoanSnapshot(contract: LoanContract, customerId: string) {
     const snapshot = contract.applicationSnapshot as Record<string, Prisma.JsonValue>;
     const account = snapshot.disbursementAccount as Record<string, Prisma.JsonValue> | undefined;
 
@@ -267,18 +267,18 @@ export class DisbursementActionService {
       throw new AppException(
         409,
         "DISBURSEMENT_NOT_READY",
-        "The signed contract must contain a verified recipient and frozen schedule.",
+        "The signed contract must contain a verified recipient and schedule snapshot.",
       );
     }
 
-    const input: FrozenLoanInput = {
+    const input: LoanSnapshot = {
       applicationId: contract.applicationId,
       customerId,
       contractId: contract.id,
       principalAmount: Number(contract.principalAmount),
       totalInterest: Number(contract.totalInterest),
       totalPayable: Number(contract.totalPayable),
-      schedule: contract.schedulePreview as unknown as FrozenLoanInput["schedule"],
+      schedule: contract.schedulePreview as unknown as LoanSnapshot["schedule"],
     };
 
     return {

@@ -20,7 +20,7 @@ import { AppModule } from "../dist/app.module.js";
 import { PrismaClient } from "../dist/generated/prisma/client.js";
 import { DisbursementActionService } from "../dist/modules/disbursement/disbursement-action.service.js";
 import { RepaymentLoanClient } from "../dist/modules/disbursement/repayment-loan.client.js";
-import { SimulatedTransferProvider } from "../dist/modules/disbursement/simulated-transfer.provider.js";
+import { TransferProvider } from "../dist/modules/disbursement/transfer.provider.js";
 import { PrismaService } from "../dist/modules/prisma/prisma.service.js";
 import { LoanProductClient } from "../dist/modules/loan-applications/loan-product.client.js";
 import { contractContentHash } from "../dist/modules/submission/contract-content.js";
@@ -66,7 +66,7 @@ test(
           ? { status: "FAILED", processedAt: new Date("2026-01-31T12:00:00Z") }
           : {
               status: "SUCCEEDED",
-              transactionReference: `SIM-${input.disbursementId}-${input.attemptNumber}`,
+              transactionReference: `TRF-${input.disbursementId}-${input.attemptNumber}`,
               processedAt: new Date("2026-01-31T12:00:00Z"),
             };
       },
@@ -120,7 +120,7 @@ test(
             customerId: application.customerId,
             disbursementAccount: {
               accountNumber: "1234567890",
-              accountHolderName: "FROZEN BORROWER",
+              accountHolderName: "SNAPSHOT BORROWER",
               verificationStatus: "VERIFIED",
             },
           },
@@ -226,7 +226,7 @@ test(
       const module = await Test.createTestingModule({ imports: [AppModule] })
         .overrideProvider(PrismaService)
         .useValue(prisma)
-        .overrideProvider(SimulatedTransferProvider)
+        .overrideProvider(TransferProvider)
         .useValue(transfer)
         .overrideProvider(LoanProductClient)
         .useValue({
@@ -277,7 +277,7 @@ test(
         assert.equal((await post(application.id, "bad key")).status, 400);
         assert.equal(
           (await post(application.id, randomUUID(), cookie(), { outcome: "SUCCEEDED" })).status,
-          400,
+          409,
         );
         assert.equal((await post(application.id)).status, 409);
         await prisma.loanApplication.update({
@@ -293,13 +293,17 @@ test(
       });
 
       await t.test(
-        "concurrent actions use frozen account and schedule and perform one transfer",
+        "concurrent actions use account and schedule snapshots and perform one transfer",
         async () => {
           const { application } = await seed();
           const key = randomUUID();
           const before = calls.length;
           const results = await Promise.all([
-            post(application.id, key),
+            post(application.id, key, cookie(), {
+              outcome: "FAILED",
+              amount: 1,
+              accountNumber: "ignored",
+            }),
             post(application.id, key),
             post(application.id),
           ]);
@@ -310,7 +314,8 @@ test(
           assert.equal(new Set(results.map((result) => result.body.loanId)).size, 1);
           assert.equal(calls.length, before + 1);
           assert.equal(calls.at(-1).accountNumber, "1234567890");
-          assert.equal(calls.at(-1).accountHolderName, "FROZEN BORROWER");
+          assert.equal(calls.at(-1).amount, 101n);
+          assert.equal(calls.at(-1).accountHolderName, "SNAPSHOT BORROWER");
           const response = await fetch(
             `${repaymentBase}/api/v1/loans/${results[0].body.loanId}/repayment-schedule`,
             { headers: { Cookie: cookie("CUSTOMER", application.customerId) } },
@@ -329,7 +334,7 @@ test(
         },
       );
 
-      await t.test("failed simulation is durable and a new key explicitly retries it", async () => {
+      await t.test("failed transfer is durable and a new key explicitly retries it", async () => {
         const { application } = await seed();
         const key = randomUUID();
         const before = calls.length;

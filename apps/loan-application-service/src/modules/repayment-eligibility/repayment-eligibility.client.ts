@@ -2,6 +2,23 @@ import { Injectable } from "@nestjs/common";
 
 import { DependencyUnavailableException } from "../../common/exceptions/app.exceptions";
 
+type ActiveLoanResponse = {
+  hasActiveLoan: boolean;
+};
+
+function parseActiveLoanResponse(value: unknown): ActiveLoanResponse {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("hasActiveLoan" in value) ||
+    typeof value.hasActiveLoan !== "boolean"
+  ) {
+    throw new DependencyUnavailableException();
+  }
+
+  return { hasActiveLoan: value.hasActiveLoan };
+}
+
 @Injectable()
 export class RepaymentEligibilityClient {
   async hasActiveLoan(customerId: string): Promise<boolean> {
@@ -26,16 +43,8 @@ export class RepaymentEligibilityClient {
         throw new DependencyUnavailableException();
       }
 
-      const body: unknown = await response.json();
-
-      if (
-        typeof body !== "object" ||
-        body === null ||
-        !("hasActiveLoan" in body) ||
-        typeof body.hasActiveLoan !== "boolean"
-      ) {
-        throw new DependencyUnavailableException();
-      }
+      const payload: unknown = await response.json();
+      const body = parseActiveLoanResponse(payload);
 
       return body.hasActiveLoan;
     } catch {

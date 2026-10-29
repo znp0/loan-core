@@ -3,7 +3,7 @@ import { isUUID } from "class-validator";
 
 import { DependencyUnavailableException } from "../../common/exceptions/app.exceptions";
 
-export type FrozenLoanInput = {
+export type LoanSnapshot = {
   applicationId: string;
   customerId: string;
   contractId: string;
@@ -20,7 +20,7 @@ export type FrozenLoanInput = {
 
 @Injectable()
 export class RepaymentLoanClient {
-  async create(input: FrozenLoanInput & { disbursedAt: string }): Promise<string> {
+  async create(input: LoanSnapshot & { disbursedAt: string }): Promise<string> {
     const base = process.env.REPAYMENT_SERVICE_URL;
     const token = process.env.REPAYMENT_INTERNAL_TOKEN;
 
