@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG NODE_VERSION=24
+ARG NODE_VERSION=24.15.0
 ARG SERVICE
 
 FROM node:${NODE_VERSION}-bookworm-slim AS tooling
@@ -15,6 +15,22 @@ RUN apt-get update \
 RUN npm install --global pnpm@${PNPM_VERSION} turbo@${TURBO_VERSION}
 
 WORKDIR /workspace
+
+FROM tooling AS test-runner
+
+ENV CI=true
+ENV HUSKY=0
+
+COPY . .
+
+RUN --mount=type=cache,id=loan-core-pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --store-dir /pnpm/store
+
+RUN pnpm build
+
+USER node
+
+CMD ["node", "scripts/test-suite.mjs"]
 
 FROM tooling AS pruner
 

@@ -20,8 +20,8 @@ import { run, start, stop, waitForHealth } from "./workflow/processes.mjs";
 const args = process.argv.slice(2);
 
 assert.ok(
-  args.every((value) => value === "--workflow-only"),
-  "Supported option: --workflow-only",
+  args.length <= 1 && args.every((value) => ["--e2e-only", "--services-only"].includes(value)),
+  "Supported options: --e2e-only, --services-only",
 );
 
 const adminUrl = disposablePostgres(process.env);
@@ -127,38 +127,40 @@ try {
     console.log(`PASS migrations: ${target.service} disposable database`);
   }
 
-  if (!args.includes("--workflow-only")) {
+  if (!args.includes("--e2e-only")) {
     for (const target of databases) {
       await serviceTests(target, "memory");
       await serviceTests(target, "postgres");
     }
   }
 
-  const ports = await Promise.all(databases.map(() => port()));
-  const bases = ports.map((value) => `http://127.0.0.1:${value}`);
+  if (!args.includes("--services-only")) {
+    const ports = await Promise.all(databases.map(() => port()));
+    const bases = ports.map((value) => `http://127.0.0.1:${value}`);
 
-  for (let index = 0; index < databases.length; index++) {
-    const target = databases[index];
-    const child = start(
-      process.execPath,
-      [join(root, "scripts/workflow/service.mjs"), target.service],
-      {
-        cwd: runtime,
-        env: processEnvironment(credentials, {
-          DATABASE_URL: target.url,
-          PORT: String(ports[index]),
-          LOAN_PRODUCT_SERVICE_URL: bases[1],
-          REPAYMENT_SERVICE_URL: bases[3],
-          DOCUMENT_STORAGE_PATH: join(runtime, "documents"),
-        }),
-      },
-    );
+    for (let index = 0; index < databases.length; index++) {
+      const target = databases[index];
+      const child = start(
+        process.execPath,
+        [join(root, "scripts/workflow/service.mjs"), target.service],
+        {
+          cwd: runtime,
+          env: processEnvironment(credentials, {
+            DATABASE_URL: target.url,
+            PORT: String(ports[index]),
+            LOAN_PRODUCT_SERVICE_URL: bases[1],
+            REPAYMENT_SERVICE_URL: bases[3],
+            DOCUMENT_STORAGE_PATH: join(runtime, "documents"),
+          }),
+        },
+      );
 
-    children.push(child);
+      children.push(child);
+    }
+
+    await Promise.all(children.map((child, index) => waitForHealth(child, bases[index])));
+    await verifyLending({ bases, credentials, databases });
   }
-
-  await Promise.all(children.map((child, index) => waitForHealth(child, bases[index])));
-  await verifyLending({ bases, credentials, databases });
 } finally {
   shutdownResults = await Promise.allSettled(children.map((child) => stop(child)));
 

@@ -10,41 +10,21 @@ env:
   HUSKY: "0"
 
 jobs:
-  smoke:
+  tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test-only-password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready --username postgres --dbname postgres" --health-interval 2s --health-timeout 5s --health-retries 20
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Configure isolated service databases
-        env:
-          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
-        run: |
-          docker exec --interactive "$POSTGRES_CONTAINER" psql --username postgres --set ON_ERROR_STOP=1 < scripts/ci-databases.sql
-          node scripts/configure-ci-env.mjs
-      - run: node --test scripts/test/*.test.mjs
-      - run: pnpm --filter @repo/http test
-      - run: pnpm --filter @repo/auth test
-      - run: pnpm test
-      - name: Service and lending workflow integration tests
-        env:
-          WORKFLOW_DISPOSABLE_POSTGRES: "1"
-        run: pnpm test:workflow
+      - uses: docker/setup-buildx-action@v3
+      - run: docker compose --env-file docker/test.env --file compose.test.yaml config --quiet
+      - name: Run the same test environment as local development
+        run: docker compose --env-file docker/test.env --file compose.test.yaml up --build --abort-on-container-exit --exit-code-from tests
+      - name: Show test logs on failure
+        if: failure()
+        run: docker compose --env-file docker/test.env --file compose.test.yaml logs --no-color
+      - name: Remove the disposable test environment
+        if: always()
+        run: docker compose --env-file docker/test.env --file compose.test.yaml down --remove-orphans --volumes
 
   containers:
     runs-on: ubuntu-latest

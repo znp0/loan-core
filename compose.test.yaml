@@ -1,0 +1,34 @@
+name: loan-core-tests
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test-only-password
+    volumes:
+      - ./scripts/ci-databases.sql:/docker-entrypoint-initdb.d/ci-databases.sql:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --host 127.0.0.1 --username postgres --dbname postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  tests:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: test-runner
+    init: true
+    # Keep the suite's loopback connections inside this disposable Compose project.
+    network_mode: service:postgres
+    environment:
+      NODE_ENV: test
+      LOAN_CORE_TEST_SUITE: ${LOAN_CORE_TEST_SUITE:-all}
+      WORKFLOW_DISPOSABLE_POSTGRES: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stop_grace_period: 15s
