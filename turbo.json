@@ -29,9 +29,6 @@
     "@repo/http#check-types": {
       "outputs": []
     },
-    "api-gateway#check-types": {
-      "outputs": []
-    },
     "db:generate": {
       "outputs": ["src/generated/prisma/**"]
     },
