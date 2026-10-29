@@ -49,13 +49,24 @@ pnpm test
 pnpm test:openapi
 ```
 
-`pnpm test` kiểm tra health, route không tồn tại, Swagger và shutdown với PostgreSQL test cục bộ. `pnpm test:openapi` kiểm tra specs mà không cần database. Để chạy cả service tests và luồng vay với bốn database tạm, dùng PostgreSQL cục bộ dùng riêng cho test, tài khoản `postgres` và mật khẩu `test-only-password`:
+`pnpm test` chạy toàn bộ test bằng môi trường Docker Compose dùng chung cho local và CI, cố định Node 24.15.0, pnpm 11.25.0 và PostgreSQL 17.11. Bộ test tự chuẩn bị database/role riêng và dọn sau khi chạy; không cần PostgreSQL, `.env` hay Doppler trên máy host.
 
 ```sh
-WORKFLOW_DISPOSABLE_POSTGRES=1 pnpm test:workflow
+pnpm test:services
+pnpm test:e2e
+pnpm test:smoke
 ```
 
-Cổng PostgreSQL mặc định là 5432; đặt `WORKFLOW_POSTGRES_PORT` nếu dùng cổng khác. Runner tự tạo và xóa database của lần chạy, dùng credentials sinh riêng cho test.
+Các lệnh trên lần lượt chạy service tests, E2E luồng vay và smoke. `pnpm test:openapi` vẫn có thể kiểm tra specs trực tiếp mà không cần database.
+
+Nếu máy chỉ có Docker Engine hoặc Docker Desktop chạy Linux containers, cùng Compose và Buildx, chạy trực tiếp:
+
+```sh
+docker compose --env-file docker/test.env --file compose.test.yaml up --build --abort-on-container-exit --exit-code-from tests
+docker compose --env-file docker/test.env --file compose.test.yaml down --volumes --remove-orphans
+```
+
+Lệnh `pnpm test` tự thực hiện cả bước chạy và dọn Compose trong project test riêng. PostgreSQL test không mở cổng ra máy host.
 
 ## Docker
 

@@ -41,6 +41,19 @@ pnpm test
 pnpm format:check
 ```
 
+## Tests
+
+`pnpm test` runs the complete suite in Docker Compose with Node 24.15.0, pnpm 11.25.0 and PostgreSQL 17.11. It creates and removes its own test environment; no host PostgreSQL or development secrets are needed. Use `pnpm test:services`, `pnpm test:e2e` or `pnpm test:smoke` to run a smaller suite.
+
+With only Docker Engine or Docker Desktop using Linux containers, Compose and Buildx installed:
+
+```sh
+docker compose --env-file docker/test.env --file compose.test.yaml up --build --abort-on-container-exit --exit-code-from tests
+docker compose --env-file docker/test.env --file compose.test.yaml down --volumes --remove-orphans
+```
+
+The pnpm commands automatically run and clean up an isolated Compose project. The test database publishes no host ports. OpenAPI validation can also run directly with `pnpm test:openapi` without a database.
+
 ## Docker
 
 Requires Docker Engine, Compose, and Buildx.
