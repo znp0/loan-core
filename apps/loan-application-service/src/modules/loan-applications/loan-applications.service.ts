@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 
 import {
   AppException,
@@ -26,6 +26,8 @@ import type { UploadedDocument } from "./uploaded-document";
 
 @Injectable()
 export class LoanApplicationsService {
+  private readonly logger = new Logger(LoanApplicationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly loanProductClient: LoanProductClient,
@@ -212,31 +214,73 @@ export class LoanApplicationsService {
     await this.storage.put(key, file.buffer);
 
     const fileName = this.sanitizeDocumentFileName(file.originalname);
-    const document = await this.prisma.$transaction(async (tx) => {
-      await this.lockEditableApplication(tx, id, customerId);
-      await tx.applicationDocument.updateMany({
-        where: { applicationId: id, type: dto.type, isCurrent: true },
-        data: { isCurrent: false },
+    let document;
+
+    try {
+      document = await this.prisma.$transaction(async (tx) => {
+        await this.lockEditableApplication(tx, id, customerId);
+        await tx.applicationDocument.updateMany({
+          where: { applicationId: id, type: dto.type, isCurrent: true },
+          data: { isCurrent: false },
+        });
+
+        const created = await tx.applicationDocument.create({
+          data: {
+            id: documentId,
+            applicationId: id,
+            type: dto.type,
+            fileName,
+            contentType: file.mimetype,
+            size: file.size,
+            storageKey: key,
+          },
+        });
+
+        await tx.loanApplication.update({ where: { id }, data: { updatedAt: new Date() } });
+
+        return created;
       });
+    } catch (error) {
+      await this.cleanUpFailedUpload(id, documentId, key);
 
-      const created = await tx.applicationDocument.create({
-        data: {
-          id: documentId,
-          applicationId: id,
-          type: dto.type,
-          fileName,
-          contentType: file.mimetype,
-          size: file.size,
-          storageKey: key,
-        },
-      });
-
-      await tx.loanApplication.update({ where: { id }, data: { updatedAt: new Date() } });
-
-      return created;
-    });
+      throw error;
+    }
 
     return documentResponse(document);
+  }
+
+  private async cleanUpFailedUpload(applicationId: string, documentId: string, key: string) {
+    const context = `applicationId=${applicationId}, documentId=${documentId}`;
+    let reference;
+
+    // A transaction error can mean COMMIT succeeded but its acknowledgement was lost.
+    try {
+      reference = await this.prisma.$transaction(async (tx) => {
+        // Wait for any original writer to settle before treating an absent reference as rollback.
+        await tx.$queryRaw`SELECT id FROM loan_applications WHERE id = ${applicationId}::uuid FOR UPDATE`;
+
+        return tx.applicationDocument.findUnique({
+          where: { storageKey: key },
+          select: { id: true },
+        });
+      });
+    } catch {
+      this.logger.warn(`Document retained: metadata outcome could not be confirmed (${context}).`);
+
+      return;
+    }
+
+    if (reference) {
+      this.logger.warn(`Document retained: metadata reference exists after failure (${context}).`);
+
+      return;
+    }
+
+    try {
+      await this.storage.remove(key);
+    } catch {
+      this.logger.error(`Unreferenced document cleanup failed (${context}).`);
+    }
   }
 
   private sanitizeDocumentFileName(originalName: string): string {
