@@ -25,7 +25,8 @@
     "db:generate": "turbo run db:generate",
     "db:validate": "turbo run db:validate",
     "secrets:setup": "doppler setup --no-interactive",
-    "secrets:pull": "node scripts/pull-env.mjs"
+    "secrets:pull": "node scripts/pull-env.mjs",
+    "test:workflow": "pnpm build && node scripts/test-workflow.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

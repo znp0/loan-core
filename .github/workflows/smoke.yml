@@ -41,6 +41,10 @@ jobs:
       - run: pnpm --filter @repo/http test
       - run: pnpm --filter @repo/auth test
       - run: pnpm test
+      - name: Service and lending workflow integration tests
+        env:
+          WORKFLOW_DISPOSABLE_POSTGRES: "1"
+        run: pnpm test:workflow
 
   containers:
     runs-on: ubuntu-latest
