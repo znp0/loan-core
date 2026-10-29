@@ -7,6 +7,7 @@ require("reflect-metadata");
 
 const { NestFactory } = require("@nestjs/core");
 const { AppModule } = require("./dist/app.module.js");
+const { setupApiDocumentation } = require("@repo/http");
 let app;
 
 if (service === "repayment-service") {
@@ -23,6 +24,7 @@ if (service === "repayment-service") {
 }
 
 app.setGlobalPrefix("api/v1");
+setupApiDocumentation(app, service);
 app.enableShutdownHooks();
 
 await app.listen(Number(process.env.PORT), "127.0.0.1");

@@ -6,6 +6,7 @@ overrides:
   webpack: 5.111.0
 allowBuilds:
   "@nestjs/core": false
+  "@scarf/scarf": false
   "@prisma/client": false
   "@prisma/engines": true
   "@swc/core": true
@@ -19,3 +20,8 @@ minimumReleaseAgeExclude:
   - "@turbo/windows-64@2.11.10"
   - "@turbo/windows-arm64@2.11.10"
   - turbo@2.11.10
+
+peerDependencyRules:
+  allowedVersions:
+    # Builds use TypeScript 7; Swagger uses explicit decorators without its TypeScript compiler plugin.
+    "@nestjs/swagger>typescript": "7.0.2"

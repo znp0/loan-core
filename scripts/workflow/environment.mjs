@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
@@ -36,11 +36,15 @@ export function databaseTargets(adminUrl) {
 
   return services.map((service, index) => {
     const name = `loan_workflow_${run}_${index}_test`;
+    const role = `${name}_owner`;
+    const password = randomBytes(32).toString("hex");
     const url = new URL(adminUrl);
 
     url.pathname = `/${name}`;
+    url.username = role;
+    url.password = password;
 
-    return { service, name, url: url.href };
+    return { service, name, role, password, url: url.href };
   });
 }
 

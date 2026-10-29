@@ -17,6 +17,13 @@ import {
 import { verifyLending } from "./workflow/lending.mjs";
 import { run, start, stop, waitForHealth } from "./workflow/processes.mjs";
 
+const args = process.argv.slice(2);
+
+assert.ok(
+  args.every((value) => value === "--workflow-only"),
+  "Supported option: --workflow-only",
+);
+
 const adminUrl = disposablePostgres(process.env);
 const databases = databaseTargets(adminUrl);
 const { Client } = serviceRequire("identity-service")("pg");
@@ -24,6 +31,7 @@ const admin = new Client({ connectionString: adminUrl });
 const credentials = createTestCredentials();
 const runtime = await mkdtemp(join(tmpdir(), "loan-workflow-"));
 const created = [];
+const roles = [];
 const children = [];
 let shutdownResults;
 const allowedSkips = [
@@ -96,8 +104,11 @@ try {
 
   for (const target of databases) {
     assertTestTarget(target.url);
-    await admin.query(`CREATE DATABASE "${target.name}"`);
+    await admin.query(`CREATE ROLE "${target.role}" LOGIN PASSWORD '${target.password}'`);
+    roles.push(target.role);
+    await admin.query(`CREATE DATABASE "${target.name}" OWNER "${target.role}"`);
     created.push(target);
+    await admin.query(`REVOKE CONNECT ON DATABASE "${target.name}" FROM PUBLIC`);
     const config = join(runtime, `${target.service}.config.ts`);
     const directory = join(root, "apps", target.service);
 
@@ -116,9 +127,11 @@ try {
     console.log(`PASS migrations: ${target.service} disposable database`);
   }
 
-  for (const target of databases) {
-    await serviceTests(target, "memory");
-    await serviceTests(target, "postgres");
+  if (!args.includes("--workflow-only")) {
+    for (const target of databases) {
+      await serviceTests(target, "memory");
+      await serviceTests(target, "postgres");
+    }
   }
 
   const ports = await Promise.all(databases.map(() => port()));
@@ -152,6 +165,10 @@ try {
   for (const target of created.reverse()) {
     assertTestTarget(target.url);
     await admin.query(`DROP DATABASE "${target.name}" WITH (FORCE)`);
+  }
+
+  for (const role of roles.reverse()) {
+    await admin.query(`DROP ROLE "${role}"`);
   }
 
   await admin.end();

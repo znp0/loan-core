@@ -20,9 +20,12 @@ test("workflow refuses unmarked instances and cannot inherit managed database se
   const targets = databaseTargets(admin);
 
   assert.equal(new Set(targets.map(({ name }) => name)).size, 4);
+  assert.equal(new Set(targets.map(({ role }) => role)).size, 4);
 
-  for (const { url } of targets) {
+  for (const { url, role } of targets) {
     assert.doesNotThrow(() => assertTestTarget(url));
+    assert.equal(new URL(url).username, role);
+    assert.notEqual(role, "postgres");
   }
 
   assert.throws(() => assertTestTarget("postgresql://127.0.0.1/development_test"));

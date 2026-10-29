@@ -101,7 +101,18 @@ async function checkService(directory) {
 
   assert.equal(unknownRouteResponse.status, 404, name);
 
-  console.log(`PASS ${name}: health endpoint and unknown route`);
+  const documentation = await fetch(`http://127.0.0.1:${port}/api/docs/`);
+  const specification = await fetch(`http://127.0.0.1:${port}/api/openapi.json`);
+  const swaggerScript = await fetch(`http://127.0.0.1:${port}/api/docs/swagger-ui-init.js`);
+
+  assert.equal(documentation.status, 200, name);
+  assert.match(await documentation.text(), /Swagger UI/, name);
+  assert.equal(specification.status, 200, name);
+  assert.ok((await specification.json()).paths["/api/v1/health"], name);
+  assert.equal(swaggerScript.status, 200, name);
+  assert.match(await swaggerScript.text(), /SwaggerUIBundle/, name);
+
+  console.log(`PASS ${name}: health, unknown route, Swagger UI/assets and OpenAPI JSON`);
 }
 
 try {
