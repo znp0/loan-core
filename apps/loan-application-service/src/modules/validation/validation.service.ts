@@ -145,6 +145,7 @@ export class ValidationService {
     for (const [field, value] of [
       ["dateOfBirth", application.dateOfBirth],
       ["identityIssuedDate", application.identityIssuedDate],
+      ["identityExpiryDate", application.identityExpiryDate],
     ] as const) {
       if (!value) {
         missingApplication.push(`applicantInfo.${field}`);
@@ -156,6 +157,23 @@ export class ValidationService {
       "application",
       missingApplication.length === 0,
       `Missing: ${missingApplication.join(", ")}.`,
+    );
+
+    const todayDate = Date.UTC(today.year, today.month - 1, today.day);
+    const expiry = application.identityExpiryDate?.getTime();
+    const issued = application.identityIssuedDate?.getTime();
+
+    // PostgreSQL DATE values are UTC dates; validity ends at local midnight after expiry.
+    addValidationCheck(
+      "IDENTITY_EXPIRY",
+      "applicantInfo.identityExpiryDate",
+      expiry !== undefined &&
+        issued !== undefined &&
+        Number.isFinite(expiry) &&
+        Number.isFinite(issued) &&
+        expiry >= issued &&
+        expiry >= todayDate,
+      "Provide an identity expiry date on or after its issue date that has not expired in Asia/Ho_Chi_Minh.",
     );
 
     const missingAddress = [

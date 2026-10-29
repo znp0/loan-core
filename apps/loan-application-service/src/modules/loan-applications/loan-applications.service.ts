@@ -94,6 +94,24 @@ export class LoanApplicationsService {
         }
 
         const data = this.buildUpdateData(dto);
+        const issuedDate =
+          dto.applicantInfo?.identityIssuedDate === undefined
+            ? application.identityIssuedDate
+            : data.identityIssuedDate;
+        const expiryDate =
+          dto.applicantInfo?.identityExpiryDate === undefined
+            ? application.identityExpiryDate
+            : data.identityExpiryDate;
+
+        if (issuedDate instanceof Date && expiryDate instanceof Date && expiryDate < issuedDate) {
+          throw new ValidationException([
+            {
+              field: "applicantInfo.identityExpiryDate",
+              message: "Identity expiry date must be on or after its issue date.",
+            },
+          ]);
+        }
+
         const nameChanged =
           dto.applicantInfo?.fullName !== undefined &&
           dto.applicantInfo.fullName !== application.fullName;
@@ -103,7 +121,13 @@ export class LoanApplicationsService {
             dto.applicantInfo.identityNumber !== application.identityNumber) ||
           (dto.applicantInfo?.dateOfBirth !== undefined &&
             dto.applicantInfo.dateOfBirth !==
-              (application.dateOfBirth?.toISOString().slice(0, 10) ?? null));
+              (application.dateOfBirth?.toISOString().slice(0, 10) ?? null)) ||
+          (dto.applicantInfo?.identityIssuedDate !== undefined &&
+            dto.applicantInfo.identityIssuedDate !==
+              (application.identityIssuedDate?.toISOString().slice(0, 10) ?? null)) ||
+          (dto.applicantInfo?.identityExpiryDate !== undefined &&
+            dto.applicantInfo.identityExpiryDate !==
+              (application.identityExpiryDate?.toISOString().slice(0, 10) ?? null));
 
         if (identityChanged) {
           await tx.identityVerification.updateMany({
@@ -315,7 +339,12 @@ export class LoanApplicationsService {
       }
     }
 
-    for (const field of ["dateOfBirth", "identityIssuedDate", "employmentStartDate"] as const) {
+    for (const field of [
+      "dateOfBirth",
+      "identityIssuedDate",
+      "identityExpiryDate",
+      "employmentStartDate",
+    ] as const) {
       const value =
         field === "employmentStartDate" ? employmentInfo?.[field] : applicantInfo?.[field];
 

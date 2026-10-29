@@ -39,6 +39,10 @@ export class ApplicantInfoDto {
   @IsDateString({ strict: true })
   identityIssuedDate?: string | null;
 
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
+  identityExpiryDate?: string | null;
+
   @IsEmail()
   @MaxLength(254)
   email?: string | null;

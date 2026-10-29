@@ -21,6 +21,7 @@ export function buildContractSnapshots(evaluation: Evaluation) {
       dateOfBirth: date(application.dateOfBirth),
       identityNumber: application.identityNumber,
       identityIssuedDate: date(application.identityIssuedDate),
+      identityExpiryDate: date(application.identityExpiryDate),
       email: application.email,
       phone: application.phone,
     },

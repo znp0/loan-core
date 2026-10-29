@@ -72,6 +72,7 @@ function application(overrides = {}) {
     identityNumber: "012345678901",
     fullName: "Nguyễn Văn A",
     dateOfBirth: new Date("1990-01-31T00:00:00.000Z"),
+    identityExpiryDate: new Date("2090-01-01T00:00:00.000Z"),
     accountNumber: "0123456789",
     accountHolderName: "NGUYEN VAN A",
     accountVerificationStatus: "UNVERIFIED",
@@ -87,6 +88,7 @@ function body(overrides = {}) {
     identityNumber: "012345678901",
     fullName: "  nguyễn văn a  ",
     dateOfBirth: "1990-01-31",
+    identityExpiryDate: "2090-01-01",
     ...overrides,
   };
 }
@@ -204,6 +206,9 @@ test("invalid path and body values are rejected before persistence", async () =>
     body({ identityNumber: undefined }),
     body({ identityNumber: " " }),
     body({ dateOfBirth: "2025-02-29" }),
+    body({ identityExpiryDate: undefined }),
+    body({ identityExpiryDate: "2025-02-29" }),
+    body({ identityExpiryDate: "2026-01-01T00:00:00Z" }),
     body({ status: "PASSED" }),
     body({ fullName: 42 }),
   ]) {
@@ -395,4 +400,16 @@ test("account verification requires a CUSTOMER owner and DRAFT application", asy
   record.status = "SUBMITTED";
   await assertError(await verifyAccount(record.id), 409, "APPLICATION_NOT_EDITABLE");
   assert.equal(record.accountVerificationStatus, "UNVERIFIED");
+});
+
+test("identity comparison includes expiry and missing legacy values cannot pass", async () => {
+  for (const identityExpiryDate of [new Date("2089-01-01"), null]) {
+    const record = application({ identityExpiryDate });
+    const response = await post(record.id);
+    const result = await response.json();
+
+    assert.equal(response.status, 201);
+    assert.equal(result.status, "FAILED");
+    assert.deepEqual(result.mismatchedFields, ["identityExpiryDate"]);
+  }
 });

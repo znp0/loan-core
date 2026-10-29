@@ -16,7 +16,7 @@ import {
 } from "../dist/modules/loan-applications/application.response.js";
 import { memoryPrisma } from "./memory-prisma.mjs";
 
-test("applicant DTO rejects the removed identity expiry field", async () => {
+test("applicant DTO accepts the restored identity expiry field", async () => {
   const dto = plainToInstance(ApplicantInfoDto, {
     fullName: "Borrower",
     dateOfBirth: "1990-01-02",
@@ -28,9 +28,7 @@ test("applicant DTO rejects the removed identity expiry field", async () => {
   });
   const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
 
-  assert.equal(errors.length, 1);
-  assert.equal(errors[0].property, "identityExpiryDate");
-  assert.ok(errors[0].constraints.whitelistValidation);
+  assert.equal(errors.length, 0);
 });
 
 test("account DTO rejects the removed bank code field", async () => {
@@ -46,7 +44,7 @@ test("account DTO rejects the removed bank code field", async () => {
   assert.ok(errors[0].constraints.whitelistValidation);
 });
 
-test("application response omits both removed fields", async () => {
+test("application response includes missing expiry as null and omits bank code", async () => {
   const prisma = memoryPrisma();
   const application = await prisma.loanApplication.create({
     data: {
@@ -63,7 +61,7 @@ test("application response omits both removed fields", async () => {
   });
   const response = applicationResponse(application);
 
-  assert.equal(Object.hasOwn(response.applicantInfo, "identityExpiryDate"), false);
+  assert.equal(response.applicantInfo.identityExpiryDate, null);
   assert.equal(Object.hasOwn(response.disbursementAccount, "bankCode"), false);
   assert.deepEqual(response.disbursementAccount, {
     accountNumber: "123456",

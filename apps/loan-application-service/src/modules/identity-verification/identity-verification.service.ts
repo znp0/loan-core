@@ -28,6 +28,7 @@ export class IdentityVerificationService {
             identityNumber: true,
             fullName: true,
             dateOfBirth: true,
+            identityExpiryDate: true,
           },
         });
 
@@ -59,6 +60,9 @@ export class IdentityVerificationService {
         }
         if (date(application.dateOfBirth) !== input.dateOfBirth) {
           mismatchedFields.push("dateOfBirth");
+        }
+        if (date(application.identityExpiryDate) !== input.identityExpiryDate) {
+          mismatchedFields.push("identityExpiryDate");
         }
         const status =
           mismatchedFields.length === 0
